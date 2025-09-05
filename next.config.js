@@ -4,47 +4,35 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 번들 크기 최적화
-  experimental: {
-    optimizeCss: true,
-  },
-  
-  // 번들 분석을 위한 설정
-  webpack: (config, { isServer }) => {
-    // 번들 크기 최적화
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-      };
-    }
-
-    // Tree shaking 최적화
-    config.optimization = {
-      ...config.optimization,
-      usedExports: true,
-      sideEffects: false,
-    };
-
-    return config;
+  // Turbopack 설정 (최신 Next.js 15 방식)
+  turbopack: {
+    // Turbopack 전용 설정 (필요시 추가)
   },
 
-  // 정적 최적화
-  trailingSlash: false,
-  
-  // 이미지 최적화
+  // 이미지 최적화 (Turbopack 호환)
   images: {
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
   },
 
-  // 압축 최적화
+  // 기본 Next.js 설정
+  trailingSlash: false,
   compress: true,
   
-  // 불필요한 폴리필 제거
-  experimental: {
-    modern: true,
-  },
+  // 번들 분석기는 프로덕션 빌드에서만 사용 (Webpack 모드)
+  ...(process.env.ANALYZE === 'true' && {
+    // Bundle analyzer는 Webpack 모드에서만 동작
+  }),
 };
 
-module.exports = withBundleAnalyzer(nextConfig);
+// 개발 모드에서 Turbopack 사용 시 Bundle Analyzer 비활성화
+const isDev = process.env.NODE_ENV === 'development';
+const useTurbopack = process.argv.includes('--turbopack');
+
+if (isDev && useTurbopack) {
+  // Turbopack 모드에서는 Bundle Analyzer 제외
+  module.exports = nextConfig;
+} else {
+  // 프로덕션 빌드나 Webpack 모드에서는 Bundle Analyzer 포함
+  module.exports = withBundleAnalyzer(nextConfig);
+}

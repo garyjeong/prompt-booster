@@ -31,7 +31,7 @@ AI 코딩 도우미를 위한 프롬프트 개선 도구
 ### 필요 조건
 
 - Node.js 18.14.0 이상
-- npm 또는 yarn
+- pnpm 8.0.0 이상 ([설치 방법](https://pnpm.io/installation))
 
 ### 설치 및 실행
 
@@ -43,9 +43,7 @@ AI 코딩 도우미를 위한 프롬프트 개선 도구
 
 2. **의존성 설치**
    ```bash
-   npm install
-   # 또는
-   yarn install
+   pnpm install
    ```
 
 3. **환경변수 설정**
@@ -65,9 +63,7 @@ AI 코딩 도우미를 위한 프롬프트 개선 도구
 
 4. **개발 서버 실행**
    ```bash
-   npm run dev
-   # 또는
-   yarn dev
+   pnpm dev
    ```
 
 5. **브라우저에서 확인**
@@ -93,22 +89,22 @@ AI 코딩 도우미를 위한 프롬프트 개선 도구
 ### 테스트 실행
 ```bash
 # 모든 테스트 실행
-npm test
+pnpm test
 
 # 테스트 watch 모드
-npm run test:watch
+pnpm test:watch
 
 # 커버리지 포함 테스트
-npm run test:coverage
+pnpm test:coverage
 ```
 
 ### 통합 테스트 (실제 API 호출)
 ```bash
 # 통합 테스트 건너뛰기 (기본)
-npm test
+pnpm test
 
 # 통합 테스트 포함 실행 (실제 API 비용 발생 주의)
-SKIP_INTEGRATION_TESTS=false npm test
+SKIP_INTEGRATION_TESTS=false pnpm test
 ```
 
 ### 테스트 구조
@@ -183,7 +179,7 @@ src/
 ### Vercel 배포 (권장)
 ```bash
 # Vercel CLI 설치
-npm i -g vercel
+pnpm add -g vercel
 
 # 배포
 vercel
@@ -196,10 +192,10 @@ vercel env add GEMINI_API_KEY
 ### 다른 플랫폼
 ```bash
 # 프로덕션 빌드
-npm run build
+pnpm build
 
 # 프로덕션 서버 실행
-npm start
+pnpm start
 ```
 
 ## 🤝 기여하기

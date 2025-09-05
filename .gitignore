@@ -30,6 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# pnpm
+# pnpm-lock.yaml (pnpm lock file should be committed for consistent installs)
+
 # env files (can opt-in for committing if needed)
 .env
 .env.local
