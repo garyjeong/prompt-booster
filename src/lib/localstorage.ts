@@ -5,137 +5,52 @@
  */
 
 import type { PromptStorageData, PromptState } from "@/types/prompt";
+import { DEFAULT_PROMPT_STATE, PROMPT_STORAGE_KEY } from "@/types/prompt";
+import { getCurrentTimestamp } from "@/lib/utils";
 import {
-	DEFAULT_PROMPT_STATE,
-	PROMPT_STORAGE_KEY,
-	getCurrentTimestamp,
-} from "@/types/prompt";
+	apiKeyStorageManager,
+	ApiKeyStorageManager,
+} from "@/lib/storage/ApiKeyStorageManager";
 
-export interface ApiKeys {
-	openai?: string;
-	gemini?: string;
+// Re-export API Key 관련 타입과 함수들 (하위 호환성 유지)
+export type { ApiKeys, ApiProvider } from "@/lib/storage/ApiKeyStorageManager";
+export { apiKeyStorageManager, ApiKeyStorageManager };
+
+// 하위 호환성을 위한 함수들
+export async function getApiKeys() {
+	return await apiKeyStorageManager.getAll();
 }
 
-const API_KEYS_STORAGE_KEY = "prompt_booster_api_keys";
-
-/**
- * LocalStorage에서 API 키들을 가져옵니다.
- * @returns API 키 객체 또는 빈 객체
- */
-export function getApiKeys(): ApiKeys {
-	try {
-		if (typeof window === "undefined") {
-			return {};
-		}
-
-		const stored = localStorage.getItem(API_KEYS_STORAGE_KEY);
-		if (!stored) {
-			return {};
-		}
-
-		const parsed = JSON.parse(stored);
-		return parsed || {};
-	} catch (error) {
-		console.error("API 키 로드 실패:", error);
-		return {};
-	}
+export async function getApiKey(provider: "openai" | "gemini") {
+	return await apiKeyStorageManager.get(provider);
 }
 
-/**
- * 특정 API 키를 가져옵니다.
- * @param provider API 제공자 ('openai' | 'gemini')
- * @returns API 키 문자열 또는 undefined
- */
-export function getApiKey(provider: keyof ApiKeys): string | undefined {
-	const keys = getApiKeys();
-	return keys[provider];
+export async function setApiKeys(keys: { openai?: string; gemini?: string }) {
+	return await apiKeyStorageManager.saveAll(keys);
 }
 
-/**
- * API 키들을 LocalStorage에 저장합니다.
- * @param keys 저장할 API 키 객체
- */
-export function setApiKeys(keys: ApiKeys): void {
-	try {
-		if (typeof window === "undefined") {
-			return;
-		}
-
-		localStorage.setItem(API_KEYS_STORAGE_KEY, JSON.stringify(keys));
-	} catch (error) {
-		console.error("API 키 저장 실패:", error);
-		throw new Error("API 키 저장에 실패했습니다.");
-	}
+export async function setApiKey(provider: "openai" | "gemini", key: string) {
+	return await apiKeyStorageManager.save(provider, key);
 }
 
-/**
- * 특정 API 키를 저장합니다.
- * @param provider API 제공자 ('openai' | 'gemini')
- * @param key 저장할 API 키
- */
-export function setApiKey(provider: keyof ApiKeys, key: string): void {
-	const currentKeys = getApiKeys();
-	setApiKeys({ ...currentKeys, [provider]: key });
+export async function removeApiKey(provider: "openai" | "gemini") {
+	return await apiKeyStorageManager.remove(provider);
 }
 
-/**
- * 특정 API 키를 삭제합니다.
- * @param provider API 제공자 ('openai' | 'gemini')
- */
-export function removeApiKey(provider: keyof ApiKeys): void {
-	const currentKeys = getApiKeys();
-	delete currentKeys[provider];
-	setApiKeys(currentKeys);
+export async function clearApiKeys() {
+	return await apiKeyStorageManager.clear();
 }
 
-/**
- * 모든 API 키를 삭제합니다.
- */
-export function clearApiKeys(): void {
-	try {
-		if (typeof window === "undefined") {
-			return;
-		}
-
-		localStorage.removeItem(API_KEYS_STORAGE_KEY);
-	} catch (error) {
-		console.error("API 키 삭제 실패:", error);
-	}
+export async function hasApiKey(provider: "openai" | "gemini") {
+	return await apiKeyStorageManager.has(provider);
 }
 
-/**
- * API 키가 설정되어 있는지 확인합니다.
- * @param provider API 제공자 ('openai' | 'gemini')
- * @returns 키가 존재하고 비어있지 않으면 true
- */
-export function hasApiKey(provider: keyof ApiKeys): boolean {
-	const key = getApiKey(provider);
-	return !!key && key.trim().length > 0;
+export async function hasAnyApiKey() {
+	return await apiKeyStorageManager.hasAny();
 }
 
-/**
- * 어떤 API 키라도 설정되어 있는지 확인합니다.
- * @returns 하나 이상의 API 키가 설정되어 있으면 true
- */
-export function hasAnyApiKey(): boolean {
-	return hasApiKey("openai") || hasApiKey("gemini");
-}
-
-/**
- * API 키의 앞 4자리와 뒤 4자리만 보여주는 마스킹된 문자열을 반환합니다.
- * @param key 마스킹할 API 키
- * @returns 마스킹된 키 문자열
- */
-export function maskApiKey(key: string): string {
-	if (!key || key.length < 8) {
-		return "****";
-	}
-
-	const start = key.slice(0, 4);
-	const end = key.slice(-4);
-	const middle = "*".repeat(Math.max(4, key.length - 8));
-
-	return `${start}${middle}${end}`;
+export function maskApiKey(key: string) {
+	return ApiKeyStorageManager.maskKey(key);
 }
 
 // ====================================

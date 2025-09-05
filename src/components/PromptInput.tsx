@@ -21,7 +21,7 @@ interface PromptInputProps {
   isLoading?: boolean;
 }
 
-const DEMO_MODE_MAX_LENGTH = 200; // 데모 모드 최대 글자 수
+const DEMO_MODE_MAX_LENGTH = 2000; // 서버 API 모드 최대 글자 수 (API 라우트와 동일)
 
 const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: PromptInputProps) {
   const [prompt, setPrompt] = useState('');
@@ -69,8 +69,8 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
 
   const placeholderText = useMemo(() => 
     isDemoMode 
-      ? `데모 모드: 최대 ${DEMO_MODE_MAX_LENGTH}자 (예: 리액트에서 useState를 사용하는 방법을 알려줘)`
-      : "예: 리액트에서 useState를 사용하는 방법을 알려줘",
+      ? `서버 API 모드: 최대 ${DEMO_MODE_MAX_LENGTH}자 (예: 리액트에서 useState를 사용하는 방법을 자세히 설명해줘)`
+      : "예: 리액트에서 useState를 사용하는 방법을 자세히 설명해줘",
     [isDemoMode]
   );
 
@@ -86,12 +86,12 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
       <VStack spacing={{ base: 3, md: 4 }} align="stretch">
         {/* 데모 모드 알림 */}
         {isDemoMode && (
-          <Alert status="warning" borderRadius="md">
+          <Alert status="info" borderRadius="md">
             <AlertIcon />
             <AlertDescription fontSize="sm">
               <Text>
-                <strong>데모 모드:</strong> 최대 {DEMO_MODE_MAX_LENGTH}자까지 입력 가능합니다. 
-                더 긴 프롬프트를 사용하려면 API 키를 설정해주세요.
+                <strong>서버 API Key 모드:</strong> 서버에서 제공하는 AI API를 사용 중입니다. 
+                개인 API Key를 설정하면 더 많은 기능을 사용할 수 있습니다.
               </Text>
             </AlertDescription>
           </Alert>

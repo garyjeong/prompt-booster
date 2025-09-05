@@ -125,8 +125,3 @@ export const PROMPT_STORAGE_KEY = "prompt_booster_prompt_data";
 export function generateSessionId(): string {
 	return `session_${Date.now()}_${Math.random().toString(36).substring(2)}`;
 }
-
-/** 현재 시간을 ISO 문자열로 반환 */
-export function getCurrentTimestamp(): string {
-	return new Date().toISOString();
-}

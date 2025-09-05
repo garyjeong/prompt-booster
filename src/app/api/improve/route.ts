@@ -49,7 +49,7 @@ async function improveWithOpenAI(
 		return (
 			completion.choices[0]?.message?.content || "프롬프트 개선에 실패했습니다."
 		);
-	} catch (error) {
+	} catch (_error) {
 		// GPT-4 실패 시 GPT-3.5로 fallback
 		try {
 			const fallbackCompletion = await openai.chat.completions.create({
@@ -119,27 +119,27 @@ function validateRequest(body: unknown): { isValid: boolean; error?: string } {
 		return { isValid: false, error: "프롬프트가 너무 깁니다. (최대 2000자)" };
 	}
 
-	if (!request.openaiKey && !request.geminiKey) {
-		return { isValid: false, error: "OpenAI 또는 Gemini API 키가 필요합니다." };
-	}
-
 	return { isValid: true };
 }
 
 /** 사용할 프로바이더 결정 */
 function determineProvider(body: PromptImprovementRequest): AIProvider {
+	const openaiKey = process.env.OPENAI_API_KEY || body.openaiKey;
+	const geminiKey = process.env.GEMINI_API_KEY || body.geminiKey;
+
 	// 사용자가 명시적으로 프로바이더를 선택한 경우
 	if (body.provider) {
-		if (body.provider === "openai" && body.openaiKey) return "openai";
-		if (body.provider === "gemini" && body.geminiKey) return "gemini";
+		if (body.provider === "openai" && openaiKey) return "openai";
+		if (body.provider === "gemini" && geminiKey) return "gemini";
 	}
 
-	// 기본 우선순위: OpenAI > Gemini
-	if (body.openaiKey) return "openai";
-	if (body.geminiKey) return "gemini";
+	// 기본 우선순위: OpenAI > Gemini (환경변수 우선, 사용자 입력 fallback)
+	if (openaiKey) return "openai";
+	if (geminiKey) return "gemini";
 
-	// 이 시점에서는 validation에서 걸러져야 함
-	throw new Error("사용 가능한 API 키가 없습니다.");
+	throw new Error(
+		"사용 가능한 API 키가 없습니다. 환경변수 또는 요청에 API 키를 포함해주세요."
+	);
 }
 
 /** POST 요청 핸들러 */
@@ -167,11 +167,13 @@ export async function POST(request: NextRequest) {
 
 		// 프롬프트 개선 실행
 		let improvedPrompt: string;
+		const openaiKey = process.env.OPENAI_API_KEY || body.openaiKey;
+		const geminiKey = process.env.GEMINI_API_KEY || body.geminiKey;
 
-		if (provider === "openai" && body.openaiKey) {
-			improvedPrompt = await improveWithOpenAI(body.prompt, body.openaiKey);
-		} else if (provider === "gemini" && body.geminiKey) {
-			improvedPrompt = await improveWithGemini(body.prompt, body.geminiKey);
+		if (provider === "openai" && openaiKey) {
+			improvedPrompt = await improveWithOpenAI(body.prompt, openaiKey);
+		} else if (provider === "gemini" && geminiKey) {
+			improvedPrompt = await improveWithGemini(body.prompt, geminiKey);
 		} else {
 			throw new Error("유효한 API 키가 없습니다.");
 		}

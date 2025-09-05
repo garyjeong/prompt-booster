@@ -141,6 +141,41 @@ export const promptCache = new APICache<string>({
 });
 
 /**
+ * 유니코드 안전 base64 인코딩 함수
+ * @param str 인코딩할 문자열
+ * @returns base64 인코딩된 문자열
+ */
+function encodeToBase64(str: string): string {
+	try {
+		// 브라우저 환경에서는 TextEncoder 사용
+		if (typeof TextEncoder !== "undefined") {
+			const encoder = new TextEncoder();
+			const data = encoder.encode(str);
+			const base64 = btoa(String.fromCharCode(...data));
+			return base64;
+		}
+
+		// Node.js 환경에서는 Buffer 사용
+		if (typeof Buffer !== "undefined") {
+			return Buffer.from(str, "utf8").toString("base64");
+		}
+
+		// 폴백: ASCII 범위 문자만 처리
+		return btoa(str);
+	} catch (error) {
+		console.warn("Base64 인코딩 실패, 폴백 사용:", error);
+		// 에러 발생 시 단순 해시 생성
+		let hash = 0;
+		for (let i = 0; i < str.length; i++) {
+			const char = str.charCodeAt(i);
+			hash = (hash << 5) - hash + char;
+			hash = hash & hash; // 32bit 정수로 변환
+		}
+		return Math.abs(hash).toString(36);
+	}
+}
+
+/**
  * 캐시 키 생성 함수
  * @param prompt 원본 프롬프트
  * @param provider AI 제공자
@@ -149,11 +184,16 @@ export const promptCache = new APICache<string>({
 export function generateCacheKey(prompt: string, provider: string): string {
 	// 프롬프트를 정규화하고 해시 생성
 	const normalizedPrompt = prompt.trim().toLowerCase();
-	return `${provider}:${btoa(normalizedPrompt).slice(0, 32)}`;
+	const encoded = encodeToBase64(normalizedPrompt);
+	return `${provider}:${encoded.slice(0, 32)}`;
 }
 
+// 동시 요청 관리를 위한 pending 맵
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pendingRequests = new Map<string, Promise<any>>();
+
 /**
- * 캐시된 API 호출 래퍼 함수
+ * 캐시된 API 호출 래퍼 함수 (동시성 제어 포함)
  * @param key 캐시 키
  * @param apiCall API 호출 함수
  * @param ttl 캐시 만료 시간 (선택적)
@@ -171,14 +211,31 @@ export async function withCache<T>(
 		return cached;
 	}
 
-	// 캐시 미스 - API 호출
+	// 동시 요청이 이미 진행 중인지 확인
+	const existingRequest = pendingRequests.get(key);
+	if (existingRequest) {
+		console.log(`대기 중인 요청 사용: ${key}`);
+		return await existingRequest;
+	}
+
+	// 새로운 API 호출 시작
 	console.log(`캐시 미스: ${key}`);
-	const result = await apiCall();
+	const requestPromise = apiCall();
 
-	// 결과를 캐시에 저장
-	promptCache.set(key, result as string, ttl);
+	// 진행 중인 요청으로 등록
+	pendingRequests.set(key, requestPromise);
 
-	return result;
+	try {
+		const result = await requestPromise;
+
+		// 결과를 캐시에 저장
+		promptCache.set(key, result as string, ttl);
+
+		return result;
+	} finally {
+		// 요청 완료 후 pending 목록에서 제거
+		pendingRequests.delete(key);
+	}
 }
 
 /**

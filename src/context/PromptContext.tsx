@@ -16,8 +16,8 @@ import type {
 import {
 	DEFAULT_PROMPT_STATE,
 	generateSessionId,
-	getCurrentTimestamp,
 } from "@/types/prompt";
+import { getCurrentTimestamp } from "@/lib/utils";
 import {
 	getPromptData,
 	setPromptData,

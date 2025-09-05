@@ -5,7 +5,6 @@ import {
   ApiKeys, 
   getApiKeys, 
   setApiKeys as saveApiKeys, 
-  hasAnyApiKey,
   hasApiKey
 } from '@/lib/localstorage';
 
@@ -17,15 +16,15 @@ interface ApiKeyContextType {
   /** 어떤 API 키라도 설정되어 있는지 여부 */
   hasKeys: boolean;
   /** 특정 프로바이더의 API 키가 있는지 확인 */
-  hasKey: (provider: keyof ApiKeys) => boolean;
+  hasKey: (provider: keyof ApiKeys) => Promise<boolean>;
   /** API 키 저장 */
-  setApiKeys: (keys: ApiKeys) => void;
+  setApiKeys: (keys: ApiKeys) => Promise<void>;
   /** 특정 API 키 저장 */
-  setApiKey: (provider: keyof ApiKeys, key: string) => void;
+  setApiKey: (provider: keyof ApiKeys, key: string) => Promise<void>;
   /** 특정 API 키 삭제 */
-  removeApiKey: (provider: keyof ApiKeys) => void;
+  removeApiKey: (provider: keyof ApiKeys) => Promise<void>;
   /** 모든 API 키 삭제 */
-  clearApiKeys: () => void;
+  clearApiKeys: () => Promise<void>;
 }
 
 const ApiKeyContext = createContext<ApiKeyContextType | undefined>(undefined);
@@ -40,20 +39,24 @@ export function ApiKeyProvider({ children }: ApiKeyProviderProps) {
 
   // 컴포넌트 마운트 시 LocalStorage에서 API 키 로드
   useEffect(() => {
-    try {
-      const savedKeys = getApiKeys();
-      setApiKeysState(savedKeys);
-    } catch (error) {
-      console.error('API 키 로드 실패:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    const loadApiKeys = async () => {
+      try {
+        const savedKeys = await getApiKeys();
+        setApiKeysState(savedKeys);
+      } catch (error) {
+        console.error('API 키 로드 실패:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadApiKeys();
   }, []);
 
   // API 키들 저장 (LocalStorage + State 업데이트)
-  const setApiKeys = (keys: ApiKeys) => {
+  const setApiKeys = async (keys: ApiKeys) => {
     try {
-      saveApiKeys(keys);
+      await saveApiKeys(keys);
       setApiKeysState(keys);
     } catch (error) {
       console.error('API 키 저장 실패:', error);
@@ -62,20 +65,20 @@ export function ApiKeyProvider({ children }: ApiKeyProviderProps) {
   };
 
   // 특정 API 키 저장
-  const setApiKey = (provider: keyof ApiKeys, key: string) => {
+  const setApiKey = async (provider: keyof ApiKeys, key: string) => {
     const newKeys = { ...apiKeys, [provider]: key };
-    setApiKeys(newKeys);
+    await setApiKeys(newKeys);
   };
 
   // 특정 API 키 삭제
-  const removeApiKey = (provider: keyof ApiKeys) => {
+  const removeApiKey = async (provider: keyof ApiKeys) => {
     const newKeys = { ...apiKeys };
     delete newKeys[provider];
-    setApiKeys(newKeys);
+    await setApiKeys(newKeys);
   };
 
   // 모든 API 키 삭제
-  const clearApiKeys = () => {
+  const clearApiKeys = async () => {
     try {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('prompt_booster_api_keys');
@@ -87,12 +90,12 @@ export function ApiKeyProvider({ children }: ApiKeyProviderProps) {
   };
 
   // 특정 프로바이더의 키가 있는지 확인
-  const hasKey = (provider: keyof ApiKeys): boolean => {
-    return hasApiKey(provider);
+  const hasKey = async (provider: keyof ApiKeys): Promise<boolean> => {
+    return await hasApiKey(provider);
   };
 
-  // 어떤 키라도 있는지 확인
-  const hasKeys = hasAnyApiKey();
+  // 어떤 키라도 있는지 확인 (상태에서 확인)
+  const hasKeys = Boolean(apiKeys.openai || apiKeys.gemini);
 
   const value: ApiKeyContextType = {
     apiKeys,

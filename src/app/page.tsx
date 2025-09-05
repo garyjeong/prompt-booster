@@ -1,22 +1,14 @@
 'use client';
 
 import { VStack, HStack } from '@chakra-ui/react';
-import dynamic from 'next/dynamic';
 import Layout from '@/components/Layout';
 import PromptInput from '@/components/PromptInput';
 import PromptResult from '@/components/PromptResult';
 import ApiKeyInput from '@/components/ApiKeyInput';
 import { ApiKeyProvider, useApiKeys } from '@/context/ApiKeyContext';
 import { PromptProvider, useCurrentPrompt, usePromptHistory } from '@/context/PromptContext';
-import { AdsProvider } from '@/context/AdsContext';
 import { withCache, generateCacheKey } from '@/lib/api-cache';
 import type { PromptImprovementRequest, APIResponse, PromptImprovementResponse } from '@/types/api';
-
-// Dynamic imports for code splitting
-const AdSettings = dynamic(() => import('@/components/ads/AdSettings'), {
-  ssr: false, // 클라이언트에서만 로드
-  loading: () => null, // 로딩 상태 없음 (개발 모드에서만 사용)
-});
 
 /** 실제 API를 호출하는 프롬프트 개선 함수 (캐싱 적용) */
 async function improvePrompt(request: PromptImprovementRequest): Promise<string> {
@@ -53,7 +45,7 @@ async function improvePrompt(request: PromptImprovementRequest): Promise<string>
 
 /** 메인 앱 컴포넌트 */
 function PromptBoosterApp() {
-  const { apiKeys, hasKeys } = useApiKeys();
+  const { apiKeys } = useApiKeys();
   const { 
     current, 
     setOriginalPrompt, 
@@ -71,20 +63,15 @@ function PromptBoosterApp() {
     clearError();
     setLoading(true);
 
-    try {
-      // API 키가 없으면 에러 처리
-      if (!hasKeys) {
-        throw new Error('API 키를 설정해주세요. 오른쪽 상단의 "API 키 설정" 버튼을 클릭하세요.');
-      }
-
-      // API 요청 생성
-      const request: PromptImprovementRequest = {
-        prompt,
-        openaiKey: apiKeys.openai,
-        geminiKey: apiKeys.gemini,
-        // OpenAI가 있으면 우선 사용, 없으면 Gemini 사용
-        provider: apiKeys.openai ? 'openai' : 'gemini'
-      };
+    		try {
+			// API 요청 생성 (환경변수 API Key를 사용하거나, 사용자 API Key를 fallback으로 사용)
+			const request: PromptImprovementRequest = {
+				prompt,
+				openaiKey: apiKeys.openai,
+				geminiKey: apiKeys.gemini,
+				// 사용자가 선호하는 프로바이더가 있으면 사용, 없으면 서버에서 결정
+				provider: apiKeys.openai ? 'openai' : apiKeys.gemini ? 'gemini' : undefined
+			};
 
       const startTime = Date.now();
       const result = await improvePrompt(request);
@@ -117,14 +104,8 @@ function PromptBoosterApp() {
   return (
     <Layout>
       <VStack spacing={8} align="stretch" maxW="4xl" mx="auto">
-        {/* 설정 버튼들 */}
-        <HStack justify="space-between" w="full">
-          {/* 광고 설정 (개발 모드에서만) */}
-          {process.env.NODE_ENV === 'development' && (
-            <AdSettings devOnly={true} />
-          )}
-          
-          {/* API 키 설정 버튼 */}
+        {/* API 키 설정 버튼 */}
+        <HStack justify="flex-end" w="full">
           <ApiKeyInput />
         </HStack>
 
@@ -148,9 +129,7 @@ export default function Home() {
   return (
     <ApiKeyProvider>
       <PromptProvider>
-        <AdsProvider>
-          <PromptBoosterApp />
-        </AdsProvider>
+        <PromptBoosterApp />
       </PromptProvider>
     </ApiKeyProvider>
   );
