@@ -10,7 +10,6 @@ import {
 import { safeTrim, isEmpty } from "@/lib/utils";
 
 export interface ApiKeys {
-	openai?: string;
 	gemini?: string;
 }
 
@@ -29,9 +28,6 @@ function validateApiKeys(data: unknown): boolean {
 	const keys = data as Record<string, unknown>;
 
 	// 키가 있으면 문자열이어야 함
-	if (keys.openai !== undefined && typeof keys.openai !== "string") {
-		return false;
-	}
 	if (keys.gemini !== undefined && typeof keys.gemini !== "string") {
 		return false;
 	}
@@ -80,9 +76,6 @@ export class ApiKeyStorageManager {
 		// 키 정리 (빈 문자열이나 공백 제거)
 		const cleanedKeys: ApiKeys = {};
 
-		if (!isEmpty(keys.openai)) {
-			cleanedKeys.openai = safeTrim(keys.openai);
-		}
 		if (!isEmpty(keys.gemini)) {
 			cleanedKeys.gemini = safeTrim(keys.gemini);
 		}
@@ -141,7 +134,7 @@ export class ApiKeyStorageManager {
 	 */
 	async hasAny(): Promise<boolean> {
 		const keys = await this.getAll();
-		return !isEmpty(keys.openai) || !isEmpty(keys.gemini);
+		return !isEmpty(keys.gemini);
 	}
 
 	/**
@@ -166,7 +159,6 @@ export class ApiKeyStorageManager {
 	async getAllMasked(): Promise<Record<ApiProvider, string>> {
 		const keys = await this.getAll();
 		return {
-			openai: keys.openai ? ApiKeyStorageManager.maskKey(keys.openai) : "",
 			gemini: keys.gemini ? ApiKeyStorageManager.maskKey(keys.gemini) : "",
 		};
 	}
@@ -185,9 +177,6 @@ export class ApiKeyStorageManager {
 		const trimmedKey = safeTrim(key);
 
 		switch (provider) {
-			case "openai":
-				// OpenAI 키는 'sk-'로 시작하고 최소 40자 이상
-				return trimmedKey.startsWith("sk-") && trimmedKey.length >= 40;
 			case "gemini":
 				// Gemini 키는 'AIza'로 시작하고 최소 35자 이상
 				return trimmedKey.startsWith("AIza") && trimmedKey.length >= 35;
@@ -208,7 +197,6 @@ export class ApiKeyStorageManager {
 		const keys = await this.getAll();
 		const providers: ApiProvider[] = [];
 
-		if (!isEmpty(keys.openai)) providers.push("openai");
 		if (!isEmpty(keys.gemini)) providers.push("gemini");
 
 		return {

@@ -54,7 +54,11 @@ global.TextDecoder = global.TextDecoder || require('util').TextDecoder
 // Mock Request and NextRequest for API testing
 global.Request = global.Request || class MockRequest {
   constructor(input, init = {}) {
-    this.url = input
+    Object.defineProperty(this, 'url', {
+      value: input,
+      writable: false,
+      configurable: false
+    })
     this.method = init.method || 'GET'
     this.headers = new Map(Object.entries(init.headers || {}))
     this.body = init.body

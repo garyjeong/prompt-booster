@@ -1,10 +1,12 @@
 'use client';
 
-import { VStack, HStack } from '@chakra-ui/react';
+import { VStack, HStack, Button, Box, Text, useColorModeValue } from '@chakra-ui/react';
+import { TimeIcon } from '@chakra-ui/icons';
 import Layout from '@/components/Layout';
 import PromptInput from '@/components/PromptInput';
 import PromptResult from '@/components/PromptResult';
 import ApiKeyInput from '@/components/ApiKeyInput';
+import ColorModeToggle from '@/components/ColorModeToggle';
 import { ApiKeyProvider, useApiKeys } from '@/context/ApiKeyContext';
 import { PromptProvider, useCurrentPrompt, usePromptHistory } from '@/context/PromptContext';
 import { withCache, generateCacheKey } from '@/lib/api-cache';
@@ -13,7 +15,7 @@ import type { PromptImprovementRequest, APIResponse, PromptImprovementResponse }
 /** 실제 API를 호출하는 프롬프트 개선 함수 (캐싱 적용) */
 async function improvePrompt(request: PromptImprovementRequest): Promise<string> {
   // 캐시 키 생성
-  const cacheKey = generateCacheKey(request.prompt, request.provider || 'unknown');
+  const cacheKey = generateCacheKey(request.prompt, 'gemini');
   
   // 캐시된 응답이 있으면 즉시 반환
   return withCache(
@@ -67,10 +69,7 @@ function PromptBoosterApp() {
 			// API 요청 생성 (환경변수 API Key를 사용하거나, 사용자 API Key를 fallback으로 사용)
 			const request: PromptImprovementRequest = {
 				prompt,
-				openaiKey: apiKeys.openai,
 				geminiKey: apiKeys.gemini,
-				// 사용자가 선호하는 프로바이더가 있으면 사용, 없으면 서버에서 결정
-				provider: apiKeys.openai ? 'openai' : apiKeys.gemini ? 'gemini' : undefined
 			};
 
       const startTime = Date.now();
@@ -84,7 +83,7 @@ function PromptBoosterApp() {
       addToHistory({
         originalPrompt: prompt,
         improvedPrompt: result,
-        provider: request.provider!,
+        provider: "gemini",
         processingTime,
       });
       
@@ -103,23 +102,63 @@ function PromptBoosterApp() {
 
   return (
     <Layout>
-      <VStack spacing={8} align="stretch" maxW="4xl" mx="auto">
-        {/* API 키 설정 버튼 */}
-        <HStack justify="flex-end" w="full">
-          <ApiKeyInput />
+      <VStack spacing={0} align="stretch" w="full">
+        {/* 상단 컨트롤 바 - 미니멀한 디자인 */}
+        <HStack 
+          justify="space-between" 
+          w="full" 
+          mb={8}
+          px={4}
+          py={3}
+          bg={useColorModeValue('gray.50', 'gray.800')}
+          borderRadius="2xl"
+          shadow="sm"
+        >
+          <HStack spacing={2}>
+            <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('gray.600', 'gray.300')}>
+              도구
+            </Text>
+          </HStack>
+          <HStack spacing={2}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.open('/history', '_blank')}
+              leftIcon={<TimeIcon />}
+              borderRadius="xl"
+            >
+              히스토리
+            </Button>
+            <ColorModeToggle size="sm" variant="ghost" />
+            <ApiKeyInput />
+          </HStack>
         </HStack>
 
-        <PromptInput 
-          onSubmit={handlePromptSubmit}
-          isLoading={current.isLoading}
-        />
-        
-        <PromptResult
-          originalPrompt={current.originalPrompt}
-          improvedPrompt={current.improvedPrompt}
-          isLoading={current.isLoading}
-          error={current.error}
-        />
+        {/* 대화형 메인 영역 */}
+        <VStack spacing={6} align="stretch" flex="1">
+          {/* 프롬프트 결과 - 대화처럼 표시 */}
+          <PromptResult
+            originalPrompt={current.originalPrompt}
+            improvedPrompt={current.improvedPrompt}
+            isLoading={current.isLoading}
+            error={current.error}
+          />
+          
+          {/* 하단 고정 입력 영역 */}
+          <Box 
+            position="sticky" 
+            bottom={0} 
+            bg={useColorModeValue('rgba(255, 255, 255, 0.9)', 'rgba(24, 24, 27, 0.9)')}
+            backdropFilter="blur(10px)"
+            pt={4}
+            mt="auto"
+          >
+            <PromptInput 
+              onSubmit={handlePromptSubmit}
+              isLoading={current.isLoading}
+            />
+          </Box>
+        </VStack>
       </VStack>
     </Layout>
   );

@@ -38,8 +38,8 @@ describe('PromptInput', () => {
   it('should render prompt input correctly', () => {
     renderWithProviders(<PromptInput onSubmit={mockOnSubmit} />)
 
-    expect(screen.getByLabelText(/원본 프롬프트를 입력하세요/i)).toBeInTheDocument()
-    expect(screen.getByText('프롬프트 개선하기')).toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /프롬프트 전송/i })).toBeInTheDocument()
     expect(screen.getByPlaceholderText(/리액트에서 useState를 사용하는 방법/i)).toBeInTheDocument()
   })
 
@@ -47,15 +47,15 @@ describe('PromptInput', () => {
     mockUseIsDemoMode.mockReturnValue(true)
     renderWithProviders(<PromptInput onSubmit={mockOnSubmit} />)
 
-    expect(screen.getByText(/서버 API Key 모드/i)).toBeInTheDocument()
-    expect(screen.getByText(/서버에서 제공하는 AI API를 사용 중입니다/i)).toBeInTheDocument()
+    expect(screen.getByText(/서버 API 모드/i)).toBeInTheDocument()
+    expect(screen.getByText(/개인 API 키를 설정하여 더 많은 기능을 사용해보세요/i)).toBeInTheDocument()
   })
 
   it('should not show alert when not in demo mode', () => {
     mockUseIsDemoMode.mockReturnValue(false)
     renderWithProviders(<PromptInput onSubmit={mockOnSubmit} />)
 
-    expect(screen.queryByText(/서버 API Key 모드/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/서버 API 모드/i)).not.toBeInTheDocument()
   })
 
   it('should handle text input correctly', async () => {
@@ -73,7 +73,7 @@ describe('PromptInput', () => {
     renderWithProviders(<PromptInput onSubmit={mockOnSubmit} />)
 
     const textarea = screen.getByRole('textbox')
-    const button = screen.getByText('프롬프트 개선하기')
+    const button = screen.getByRole('button', { name: /프롬프트 전송/i })
 
     await user.type(textarea, '테스트 프롬프트')
     await user.click(button)
@@ -96,7 +96,7 @@ describe('PromptInput', () => {
   it('should disable button when prompt is empty', () => {
     renderWithProviders(<PromptInput onSubmit={mockOnSubmit} />)
 
-    const button = screen.getByText('프롬프트 개선하기')
+    const button = screen.getByRole('button', { name: /프롬프트 전송/i })
     expect(button).toBeDisabled()
   })
 
@@ -105,7 +105,7 @@ describe('PromptInput', () => {
     renderWithProviders(<PromptInput onSubmit={mockOnSubmit} />)
 
     const textarea = screen.getByRole('textbox')
-    const button = screen.getByText('프롬프트 개선하기')
+    const button = screen.getByRole('button', { name: /프롬프트 전송/i })
 
     await user.type(textarea, '테스트')
     expect(button).not.toBeDisabled()
@@ -114,7 +114,8 @@ describe('PromptInput', () => {
   it('should show loading state correctly', () => {
     renderWithProviders(<PromptInput onSubmit={mockOnSubmit} isLoading={true} />)
 
-    const button = screen.getByText('프롬프트 개선 중...')
+    const button = screen.getByRole('button', { name: /프롬프트 전송/i })
+    expect(button).toHaveAttribute('data-loading')
     expect(button).toBeDisabled()
   })
 
@@ -153,7 +154,7 @@ describe('PromptInput', () => {
     renderWithProviders(<PromptInput onSubmit={mockOnSubmit} />)
 
     const textarea = screen.getByRole('textbox')
-    const button = screen.getByText('프롬프트 개선하기')
+    const button = screen.getByRole('button', { name: /프롬프트 전송/i })
 
     // 공백만 입력
     await user.type(textarea, '   ')
@@ -167,7 +168,7 @@ describe('PromptInput', () => {
     renderWithProviders(<PromptInput onSubmit={mockOnSubmit} />)
 
     const textarea = screen.getByRole('textbox')
-    const button = screen.getByText('프롬프트 개선하기')
+    const button = screen.getByRole('button', { name: /프롬프트 전송/i })
 
     await user.type(textarea, '  테스트 프롬프트  ')
     await user.click(button)

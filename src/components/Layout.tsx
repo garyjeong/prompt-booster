@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Box, Container, Flex, Text } from '@chakra-ui/react';
+import { Box, Flex, Text, useColorModeValue, VStack } from '@chakra-ui/react';
 import { ReactNode } from 'react';
 
 interface LayoutProps {
@@ -7,47 +7,69 @@ interface LayoutProps {
 }
 
 const Layout = memo(function Layout({ children }: LayoutProps) {
+  const borderColor = useColorModeValue('gray.100', 'gray.700');
+  const subtextColor = useColorModeValue('gray.500', 'gray.400');
+
   return (
-    <Flex direction="column" minHeight="100vh">
-      {/* Header */}
-      <Box as="header" bg="blue.500" color="white" py={{ base: 3, md: 4 }}>
-        <Container maxW="container.xl" px={{ base: 4, md: 6 }}>
-          <Text 
-            fontSize={{ base: "xl", md: "2xl" }} 
-            fontWeight="bold"
-            lineHeight="shorter"
-          >
-            Prompt Booster
-          </Text>
-          <Text 
-            fontSize={{ base: "xs", md: "sm" }} 
-            opacity={0.9}
-            mt={{ base: 1, md: 0 }}
-          >
-            AI 코딩 도우미를 위한 프롬프트 개선 도구
-          </Text>
-        </Container>
+    <Flex direction="column" minHeight="100vh" bg="transparent">
+      {/* Minimal Header */}
+      <Box 
+        as="header" 
+        py={4}
+        borderBottom="1px" 
+        borderColor={borderColor}
+        bg={useColorModeValue('rgba(255, 255, 255, 0.8)', 'rgba(24, 24, 27, 0.8)')}
+        backdropFilter="blur(10px)"
+        position="sticky"
+        top={0}
+        zIndex={10}
+      >
+        <Box maxW="4xl" mx="auto" px={6}>
+          <VStack spacing={1} align="center">
+            <Text 
+              fontSize="2xl" 
+              fontWeight="semibold"
+              bgGradient="linear(to-r, brand.500, brand.600)"
+              bgClip="text"
+              letterSpacing="-0.025em"
+            >
+              Prompt Booster
+            </Text>
+            <Text 
+              fontSize="sm" 
+              color={subtextColor}
+              fontWeight="medium"
+            >
+              AI 프롬프트 개선 도구
+            </Text>
+          </VStack>
+        </Box>
       </Box>
 
-      {/* Main Content */}
-      <Box as="main" flex="1" py={{ base: 4, md: 6, lg: 8 }}>
-        <Container maxW="container.xl" px={{ base: 4, md: 6 }}>
+      {/* Main Content - Centered Chat Layout */}
+      <Box as="main" flex="1" py={8}>
+        <Box maxW="4xl" mx="auto" px={6}>
           {children}
-        </Container>
+        </Box>
       </Box>
 
-      {/* Footer */}
-      <Box as="footer" bg="gray.100" py={{ base: 3, md: 4 }} borderTop="1px" borderColor="gray.200">
-        <Container maxW="container.xl" px={{ base: 4, md: 6 }}>
+      {/* Minimal Footer */}
+      <Box 
+        as="footer" 
+        py={6} 
+        borderTop="1px" 
+        borderColor={borderColor}
+      >
+        <Box maxW="4xl" mx="auto" px={6}>
           <Text 
-            fontSize={{ base: "xs", md: "sm" }} 
-            color="gray.600" 
+            fontSize="xs" 
+            color={subtextColor} 
             textAlign="center"
-            lineHeight="relaxed"
+            fontWeight="medium"
           >
-            © 2025 Prompt Booster. AI로 더 나은 프롬프트를 만들어보세요.
+            Powered by AI • Made with ❤️ for developers
           </Text>
-        </Container>
+        </Box>
       </Box>
     </Flex>
   );

@@ -21,19 +21,19 @@ export async function getApiKeys() {
 	return await apiKeyStorageManager.getAll();
 }
 
-export async function getApiKey(provider: "openai" | "gemini") {
+export async function getApiKey(provider: "gemini") {
 	return await apiKeyStorageManager.get(provider);
 }
 
-export async function setApiKeys(keys: { openai?: string; gemini?: string }) {
+export async function setApiKeys(keys: { gemini?: string }) {
 	return await apiKeyStorageManager.saveAll(keys);
 }
 
-export async function setApiKey(provider: "openai" | "gemini", key: string) {
+export async function setApiKey(provider: "gemini", key: string) {
 	return await apiKeyStorageManager.save(provider, key);
 }
 
-export async function removeApiKey(provider: "openai" | "gemini") {
+export async function removeApiKey(provider: "gemini") {
 	return await apiKeyStorageManager.remove(provider);
 }
 
@@ -41,7 +41,7 @@ export async function clearApiKeys() {
 	return await apiKeyStorageManager.clear();
 }
 
-export async function hasApiKey(provider: "openai" | "gemini") {
+export async function hasApiKey(provider: "gemini") {
 	return await apiKeyStorageManager.has(provider);
 }
 

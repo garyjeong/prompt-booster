@@ -75,7 +75,6 @@ describe("LocalStorage API Keys (New OOP Implementation)", () => {
 	describe("setApiKeys", () => {
 		it("should store API keys successfully", async () => {
 			const testKeys: ApiKeys = {
-				openai: "sk-test-openai-key",
 				gemini: "test-gemini-key",
 			};
 
@@ -88,7 +87,7 @@ describe("LocalStorage API Keys (New OOP Implementation)", () => {
 		});
 
 		it("should handle storage errors gracefully", async () => {
-			const testKeys: ApiKeys = { openai: "test-key" };
+			const testKeys: ApiKeys = { gemini: "test-key" };
 			localStorageMock.setItem.mockImplementation(() => {
 				throw new Error("Storage error");
 			});
@@ -100,8 +99,7 @@ describe("LocalStorage API Keys (New OOP Implementation)", () => {
 
 		it("should clean empty values before storing", async () => {
 			const testKeys: ApiKeys = {
-				openai: "  valid-key  ",
-				gemini: "",
+				gemini: "  valid-key  ",
 			};
 
 			// 성공적인 저장을 위해 모킹
@@ -111,7 +109,7 @@ describe("LocalStorage API Keys (New OOP Implementation)", () => {
 
 			expect(localStorageMock.setItem).toHaveBeenCalledWith(
 				"prompt_booster_api_keys",
-				JSON.stringify({ openai: "valid-key" })
+				JSON.stringify({ gemini: "valid-key" })
 			);
 		});
 	});
@@ -222,7 +220,7 @@ describe("LocalStorage API Keys (New OOP Implementation)", () => {
 
 	describe("hasAnyApiKey", () => {
 		it("should return true when any key exists", async () => {
-			const mockKeys: ApiKeys = { openai: "sk-test-key" };
+			const mockKeys: ApiKeys = { gemini: "test-gemini-key" };
 			localStorageMock.getItem.mockReturnValue(JSON.stringify(mockKeys));
 
 			const result = await hasAnyApiKey();
@@ -269,19 +267,22 @@ describe("ApiKeyStorageManager Direct Tests", () => {
 	});
 
 	describe("Key Validation", () => {
-		it("should validate OpenAI key format", () => {
+		it("should reject OpenAI key format (not supported)", () => {
+			// OpenAI는 더 이상 지원하지 않음
 			expect(
 				ApiKeyStorageManager.validateKeyFormat(
-					"openai",
+					"openai" as any,
 					"sk-test1234567890123456789012345678901234567890"
 				)
-			).toBe(true);
-
-			expect(
-				ApiKeyStorageManager.validateKeyFormat("openai", "invalid-key")
 			).toBe(false);
 
-			expect(ApiKeyStorageManager.validateKeyFormat("openai", "")).toBe(false);
+			expect(
+				ApiKeyStorageManager.validateKeyFormat("openai" as any, "invalid-key")
+			).toBe(false);
+
+			expect(ApiKeyStorageManager.validateKeyFormat("openai" as any, "")).toBe(
+				false
+			);
 		});
 
 		it("should validate Gemini key format", () => {

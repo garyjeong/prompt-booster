@@ -95,7 +95,7 @@ export function ApiKeyProvider({ children }: ApiKeyProviderProps) {
   };
 
   // 어떤 키라도 있는지 확인 (상태에서 확인)
-  const hasKeys = Boolean(apiKeys.openai || apiKeys.gemini);
+  const hasKeys = Boolean(apiKeys.gemini);
 
   const value: ApiKeyContextType = {
     apiKeys,

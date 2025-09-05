@@ -26,7 +26,8 @@ describe('PromptResult', () => {
   it('should show placeholder when no content is provided', () => {
     renderWithProviders(<PromptResult />)
 
-    expect(screen.getByText(/프롬프트를 입력하고 개선 버튼을 클릭하면/i)).toBeInTheDocument()
+    expect(screen.getByText(/프롬프트를 입력해보세요/i)).toBeInTheDocument()
+    expect(screen.getByText(/AI가 여러분의 프롬프트를 더 효과적으로 개선해드립니다/i)).toBeInTheDocument()
   })
 
   it('should show original prompt when provided', () => {
@@ -36,9 +37,8 @@ describe('PromptResult', () => {
       />
     )
 
-    expect(screen.getByText('원본 프롬프트')).toBeInTheDocument()
+    expect(screen.getByText('당신')).toBeInTheDocument()
     expect(screen.getByText('리액트에서 useState를 사용하는 방법을 알려줘')).toBeInTheDocument()
-    expect(screen.getByText('원본')).toBeInTheDocument() // Badge
   })
 
   it('should show improved prompt when provided', () => {
@@ -49,9 +49,8 @@ describe('PromptResult', () => {
       />
     )
 
-    expect(screen.getByText('개선된 프롬프트')).toBeInTheDocument()
+    expect(screen.getByText('Prompt Booster AI')).toBeInTheDocument()
     expect(screen.getByText(/개선된 프롬프트: 리액트에서 useState 훅을 사용하여/i)).toBeInTheDocument()
-    expect(screen.getByText('개선됨')).toBeInTheDocument() // Badge
   })
 
   it('should show copy button when improved prompt is available', () => {
@@ -62,10 +61,8 @@ describe('PromptResult', () => {
       />
     )
 
-    const copyButton = screen.getByTestId('copy-button')
+    const copyButton = screen.getByText(/📋 복사/i)
     expect(copyButton).toBeInTheDocument()
-    expect(copyButton).toHaveAttribute('data-text', '개선된 프롬프트')
-    expect(screen.getByText('클립보드에 복사')).toBeInTheDocument()
   })
 
   it('should not show copy button when no improved prompt', () => {
@@ -86,9 +83,8 @@ describe('PromptResult', () => {
       />
     )
 
-    // 스켈레톤 로더 확인 (Chakra UI Skeleton)
-    const skeletons = document.querySelectorAll('[data-loading="true"]')
-    expect(skeletons.length).toBeGreaterThan(0)
+    // 타이핑 애니메이션 확인 (모던 UI에서는 타이핑 인디케이터 사용)
+    expect(screen.getByText(/프롬프트를 개선하고 있습니다/i)).toBeInTheDocument()
   })
 
   it('should show error message when error is provided', () => {
@@ -139,8 +135,8 @@ describe('PromptResult', () => {
       />
     )
 
-    expect(screen.getByText('원본 프롬프트')).toBeInTheDocument()
-    expect(screen.getByText('개선된 프롬프트')).toBeInTheDocument()
+    expect(screen.getByText('당신')).toBeInTheDocument()
+    expect(screen.getByText('Prompt Booster AI')).toBeInTheDocument()
     expect(screen.getByText(originalPrompt)).toBeInTheDocument()
     expect(screen.getByText(improvedPrompt)).toBeInTheDocument()
   })
@@ -162,7 +158,7 @@ describe('PromptResult', () => {
     )
 
     // 로딩 중일 때도 컨텐츠 영역이 표시되어야 함
-    expect(screen.queryByText(/프롬프트를 입력하고 개선 버튼을 클릭하면/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/프롬프트를 입력해보세요/i)).not.toBeInTheDocument()
   })
 
   it('should handle long text content properly', () => {

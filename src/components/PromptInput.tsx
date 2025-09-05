@@ -2,18 +2,19 @@ import React, { memo, useState, useMemo, useCallback } from 'react';
 import { 
   Box, 
   Button, 
-  FormControl,
-  FormLabel,
   Textarea, 
   VStack,
-  Stack,
+  HStack,
   Text,
   Alert,
   AlertIcon,
   AlertDescription,
   Progress,
-  useColorModeValue
+  useColorModeValue,
+  IconButton,
+  Tooltip
 } from '@chakra-ui/react';
+import { ArrowUpIcon } from '@chakra-ui/icons';
 import { useIsDemoMode } from '@/context/ApiKeyContext';
 
 interface PromptInputProps {
@@ -75,94 +76,140 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
   );
 
   return (
-    <Box 
-      bg={bgColor} 
-      p={{ base: 4, md: 6 }} 
-      borderRadius={{ base: "md", md: "lg" }}
-      border="1px" 
-      borderColor={borderColor}
-      shadow="sm"
-    >
-      <VStack spacing={{ base: 3, md: 4 }} align="stretch">
-        {/* 데모 모드 알림 */}
-        {isDemoMode && (
-          <Alert status="info" borderRadius="md">
-            <AlertIcon />
-            <AlertDescription fontSize="sm">
-              <Text>
-                <strong>서버 API Key 모드:</strong> 서버에서 제공하는 AI API를 사용 중입니다. 
-                개인 API Key를 설정하면 더 많은 기능을 사용할 수 있습니다.
-              </Text>
-            </AlertDescription>
-          </Alert>
-        )}
+    <VStack spacing={4} align="stretch">
+      {/* 데모 모드 알림 - 간소화 */}
+      {isDemoMode && (
+        <Alert 
+          status="info" 
+          borderRadius="xl"
+          bg={useColorModeValue('blue.50', 'blue.900')}
+          border="1px"
+          borderColor={useColorModeValue('blue.200', 'blue.700')}
+        >
+          <AlertIcon />
+          <AlertDescription fontSize="sm">
+            <Text>
+              <strong>서버 API 모드</strong> • 개인 API 키를 설정하여 더 많은 기능을 사용해보세요
+            </Text>
+          </AlertDescription>
+        </Alert>
+      )}
 
-        <FormControl>
-          <FormLabel htmlFor="prompt-input" fontSize={{ base: "md", md: "lg" }} fontWeight="semibold">
-            <Stack 
-              direction={{ base: "column", sm: "row" }}
-              justify="space-between"
-              align={{ base: "start", sm: "center" }}
-              spacing={{ base: 1, sm: 0 }}
-            >
-              <Text>원본 프롬프트를 입력하세요</Text>
+      {/* 모던 채팅 스타일 입력 영역 */}
+      <Box
+        bg={bgColor}
+        borderRadius="2xl"
+        border="1px"
+        borderColor={isNearLimit ? "orange.300" : borderColor}
+        shadow="lg"
+        transition="all 0.2s ease"
+        _focusWithin={{
+          borderColor: isNearLimit ? "orange.400" : "brand.400",
+          shadow: "xl",
+          transform: "translateY(-1px)"
+        }}
+        overflow="hidden"
+      >
+        <VStack spacing={0} align="stretch">
+          {/* 텍스트 입력 영역 */}
+          <Box position="relative">
+            <Textarea
+              value={prompt}
+              onChange={handlePromptChange}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholderText}
+              minHeight="120px"
+              maxHeight="300px"
+              fontSize="md"
+              fontWeight="medium"
+              lineHeight="1.6"
+              border="none"
+              resize="none"
+              isDisabled={isLoading}
+              bg="transparent"
+              _focus={{
+                boxShadow: "none",
+                outline: "none"
+              }}
+              _placeholder={{
+                color: useColorModeValue('gray.400', 'gray.500')
+              }}
+              px={6}
+              py={5}
+              pr={16} // 전송 버튼 공간 확보
+            />
+            
+            {/* 통합된 전송 버튼 */}
+            <Box position="absolute" bottom={4} right={4}>
+              <Tooltip 
+                label={prompt.trim() ? "프롬프트 개선하기" : "프롬프트를 입력해주세요"}
+                hasArrow
+              >
+                <IconButton
+                  aria-label="프롬프트 전송"
+                  icon={<ArrowUpIcon />}
+                  onClick={handleSubmit}
+                  isLoading={isLoading}
+                  isDisabled={!prompt.trim() || isLoading}
+                  size="sm"
+                  colorScheme="brand"
+                  borderRadius="xl"
+                  bg={prompt.trim() ? "brand.500" : "gray.300"}
+                  color="white"
+                  _hover={{
+                    bg: prompt.trim() ? "brand.600" : "gray.400",
+                    transform: "scale(1.05)"
+                  }}
+                  _active={{
+                    transform: "scale(0.95)"
+                  }}
+                  transition="all 0.15s ease"
+                />
+              </Tooltip>
+            </Box>
+          </Box>
+
+          {/* 하단 정보 바 */}
+          <HStack 
+            justify="space-between" 
+            align="center"
+            px={6}
+            py={3}
+            bg={useColorModeValue('gray.50', 'gray.700')}
+            borderTop="1px"
+            borderColor={borderColor}
+          >
+            <HStack spacing={4}>
+              <Text fontSize="xs" color="gray.500">
+                Ctrl+Enter로 전송
+              </Text>
               {isDemoMode && (
                 <Text 
-                  fontSize={{ base: "xs", md: "sm" }}
+                  fontSize="xs"
                   color={isNearLimit ? "orange.500" : "gray.500"}
-                  fontWeight="normal"
+                  fontWeight="medium"
                 >
                   {currentLength}/{DEMO_MODE_MAX_LENGTH}자
                 </Text>
               )}
-            </Stack>
-          </FormLabel>
-          
-          <Textarea
-            id="prompt-input"
-            value={prompt}
-            onChange={handlePromptChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholderText}
-            minHeight={{ base: "100px", md: "120px" }}
-            fontSize={{ base: "sm", md: "md" }}
-            resize="vertical"
-            isDisabled={isLoading}
-            borderColor={isNearLimit ? "orange.300" : borderColor}
-            _focus={isNearLimit ? { borderColor: "orange.500" } : undefined}
-          />
-
-          {/* 데모 모드 프로그레스 바 */}
-          {isDemoMode && (
-            <Progress
-              value={progressValue}
-              size="sm"
-              mt={2}
-              colorScheme={isNearLimit ? "orange" : "blue"}
-              borderRadius="full"
-            />
-          )}
-
-          <Text fontSize="xs" color="gray.500" mt={2} display={{ base: "none", sm: "block" }}>
-            Ctrl+Enter 또는 Cmd+Enter로 빠르게 전송할 수 있습니다
-          </Text>
-        </FormControl>
-
-        <Button
-          colorScheme="blue"
-          size={{ base: "md", md: "lg" }}
-          h={{ base: "48px", md: "auto" }}
-          fontSize={{ base: "sm", md: "md" }}
-          onClick={handleSubmit}
-          isLoading={isLoading}
-          loadingText="프롬프트 개선 중..."
-          isDisabled={!prompt.trim() || isLoading}
-          w="full"
-        >
-          프롬프트 개선하기
-        </Button>
-      </VStack>
-    </Box>
+            </HStack>
+            
+            {/* 캐릭터 제한 프로그레스 (데모 모드에서만) */}
+            {isDemoMode && (
+              <Box w="60px">
+                <Progress
+                  value={progressValue}
+                  size="sm"
+                  colorScheme={isNearLimit ? "orange" : "brand"}
+                  borderRadius="full"
+                  bg={useColorModeValue('gray.200', 'gray.600')}
+                />
+              </Box>
+            )}
+          </HStack>
+        </VStack>
+      </Box>
+    </VStack>
   );
 });
 

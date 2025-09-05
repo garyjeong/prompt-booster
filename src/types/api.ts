@@ -3,16 +3,12 @@
  */
 
 /** 지원하는 AI 프로바이더 */
-export type AIProvider = "openai" | "gemini";
+export type AIProvider = "gemini";
 
 /** 프롬프트 개선 요청 */
 export interface PromptImprovementRequest {
 	/** 개선할 원본 프롬프트 */
 	prompt: string;
-	/** 선호하는 AI 프로바이더 (옵션) */
-	provider?: AIProvider;
-	/** OpenAI API 키 */
-	openaiKey?: string;
 	/** Gemini API 키 */
 	geminiKey?: string;
 }
@@ -50,19 +46,11 @@ export type APIResponse<T> =
 			error: APIError;
 	  };
 
-/** OpenAI 모델 타입 */
-export type OpenAIModel = "gpt-4" | "gpt-4-turbo" | "gpt-3.5-turbo";
-
 /** Gemini 모델 타입 */
 export type GeminiModel = "gemini-1.5-pro" | "gemini-1.5-flash";
 
 /** AI 모델 설정 */
 export interface AIModelConfig {
-	openai: {
-		model: OpenAIModel;
-		maxTokens: number;
-		temperature: number;
-	};
 	gemini: {
 		model: GeminiModel;
 		maxTokens: number;

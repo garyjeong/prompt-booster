@@ -273,13 +273,16 @@ describe("API Cache Utilities", () => {
 		it("should maintain cache performance with many entries", () => {
 			const startTime = Date.now();
 
+			// 캐시 최대 용량 내에서 테스트 (50개 이하)
+			const entryCount = 40;
+
 			// 많은 엔트리 추가
-			for (let i = 0; i < 100; i++) {
+			for (let i = 0; i < entryCount; i++) {
 				promptCache.set(`perf-test-${i}`, `data-${i}`);
 			}
 
 			// 조회 성능 테스트
-			for (let i = 0; i < 100; i++) {
+			for (let i = 0; i < entryCount; i++) {
 				const result = promptCache.get(`perf-test-${i}`);
 				expect(result).toBe(`data-${i}`);
 			}
