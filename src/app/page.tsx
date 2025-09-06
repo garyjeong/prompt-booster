@@ -1,19 +1,31 @@
 'use client';
 
+import { useState } from 'react';
 import { VStack, HStack, Button, Box, Text, useColorModeValue } from '@chakra-ui/react';
 import { TimeIcon } from '@chakra-ui/icons';
+import dynamic from 'next/dynamic';
 import Layout from '@/components/Layout';
 import PromptInput from '@/components/PromptInput';
 import PromptResult from '@/components/PromptResult';
-import ApiKeyInput from '@/components/ApiKeyInput';
 import ColorModeToggle from '@/components/ColorModeToggle';
+
+// ApiKeyInput 지연 로딩 (설정 버튼 클릭 시에만 로드)
+const ApiKeyInput = dynamic(() => import('@/components/ApiKeyInput'), {
+  loading: () => (
+    <Box p={4} textAlign="center">
+      <Text fontSize="sm" color="gray.500">API 키 설정을 불러오는 중...</Text>
+    </Box>
+  ),
+  ssr: false
+});
 import { ApiKeyProvider, useApiKeys } from '@/context/ApiKeyContext';
 import { PromptProvider, useCurrentPrompt, usePromptHistory } from '@/context/PromptContext';
 import { withCache, generateCacheKey } from '@/lib/api-cache';
 import type { PromptImprovementRequest, APIResponse, PromptImprovementResponse } from '@/types/api';
+import type { PromptComparisonAnalysis } from '@/types/scoring';
 
 /** 실제 API를 호출하는 프롬프트 개선 함수 (캐싱 적용) */
-async function improvePrompt(request: PromptImprovementRequest): Promise<string> {
+async function improvePrompt(request: PromptImprovementRequest): Promise<PromptImprovementResponse> {
   // 캐시 키 생성
   const cacheKey = generateCacheKey(request.prompt, 'gemini');
   
@@ -40,7 +52,7 @@ async function improvePrompt(request: PromptImprovementRequest): Promise<string>
         throw new Error(result.error.error);
       }
 
-      return result.data.improvedPrompt;
+      return result.data;
     }
   );
 }
@@ -58,12 +70,24 @@ function PromptBoosterApp() {
   } = useCurrentPrompt();
   const { addToHistory } = usePromptHistory();
 
+  // 점수화 데이터 상태 관리
+  const [scoringAnalysis, setScoringAnalysis] = useState<PromptComparisonAnalysis | undefined>(undefined);
+  const [provider, setProvider] = useState<string>('');
+  const [processingTime, setProcessingTime] = useState<number>(0);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+
   const handlePromptSubmit = async (prompt: string) => {
     // 상태 초기화 및 설정
     setOriginalPrompt(prompt);
     setImprovedPrompt('');
     clearError();
     setLoading(true);
+    
+    // 점수화 데이터 초기화
+    setScoringAnalysis(undefined);
+    setProvider('');
+    setProcessingTime(0);
+    setIsDemoMode(false);
 
     		try {
 			// API 요청 생성 (환경변수 API Key를 사용하거나, 사용자 API Key를 fallback으로 사용)
@@ -72,19 +96,27 @@ function PromptBoosterApp() {
 				geminiKey: apiKeys.gemini,
 			};
 
-      const startTime = Date.now();
       const result = await improvePrompt(request);
-      const processingTime = Date.now() - startTime;
 
       // 개선된 프롬프트 설정
-      setImprovedPrompt(result);
+      setImprovedPrompt(result.improvedPrompt);
+
+      // 점수화 데이터 설정
+      if (result.scoringAnalysis) {
+        setScoringAnalysis(result.scoringAnalysis);
+      }
+      setProvider(result.provider);
+      setProcessingTime(result.processingTime);
+      setIsDemoMode(result.isDemoMode || false);
 
       // 히스토리에 세션 추가
       addToHistory({
         originalPrompt: prompt,
-        improvedPrompt: result,
-        provider: "gemini",
-        processingTime,
+        improvedPrompt: result.improvedPrompt,
+        provider: result.provider,
+        processingTime: result.processingTime,
+        isDemoMode: result.isDemoMode,
+        scoringAnalysis: result.scoringAnalysis,
       });
       
     } catch (error) {
@@ -142,6 +174,10 @@ function PromptBoosterApp() {
             improvedPrompt={current.improvedPrompt}
             isLoading={current.isLoading}
             error={current.error}
+            scoringAnalysis={scoringAnalysis}
+            provider={provider}
+            processingTime={processingTime}
+            isDemoMode={isDemoMode}
           />
           
           {/* 하단 고정 입력 영역 */}

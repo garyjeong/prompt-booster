@@ -32,10 +32,9 @@ const ColorModeToggle = memo(function ColorModeToggle({
   const { colorMode, toggleColorMode } = useColorMode();
   
   // 현재 모드에 따른 아이콘과 텍스트 (useMemo 최적화)
-  const { isDark, SwitchIcon, label } = useMemo(() => {
+  const { SwitchIcon, label } = useMemo(() => {
     const isDark = colorMode === 'dark';
     return {
-      isDark,
       SwitchIcon: isDark ? SunIcon : MoonIcon,
       label: isDark ? '라이트 모드로 전환' : '다크 모드로 전환'
     };

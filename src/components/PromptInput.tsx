@@ -1,7 +1,6 @@
 import React, { memo, useState, useMemo, useCallback } from 'react';
 import { 
   Box, 
-  Button, 
   Textarea, 
   VStack,
   HStack,
@@ -29,6 +28,11 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
   const isDemoMode = useIsDemoMode();
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
+  
+  // Alert 색상들 (조건부 렌더링 밖에서 미리 정의)
+  const alertBg = useColorModeValue('blue.50', 'blue.900');
+  const alertBorderColor = useColorModeValue('blue.200', 'blue.700');
+  const progressBg = useColorModeValue('gray.200', 'gray.600');
 
   // 데모 모드에서 입력 제한 처리 (useCallback으로 최적화)
   const handlePromptChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -82,9 +86,9 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
         <Alert 
           status="info" 
           borderRadius="xl"
-          bg={useColorModeValue('blue.50', 'blue.900')}
+          bg={alertBg}
           border="1px"
-          borderColor={useColorModeValue('blue.200', 'blue.700')}
+          borderColor={alertBorderColor}
         >
           <AlertIcon />
           <AlertDescription fontSize="sm">
@@ -202,7 +206,7 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
                   size="sm"
                   colorScheme={isNearLimit ? "orange" : "brand"}
                   borderRadius="full"
-                  bg={useColorModeValue('gray.200', 'gray.600')}
+                  bg={progressBg}
                 />
               </Box>
             )}

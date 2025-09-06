@@ -84,7 +84,7 @@ const ApiKeyInput = memo(function ApiKeyInput() {
     } finally {
       setIsLoading(false);
     }
-  }, [geminiKey, setApiKey, removeApiKey, toast, onClose]);
+  }, [geminiKey, apiKeys.gemini, setApiKey, removeApiKey, toast, onClose]);
 
   // 저장 버튼 활성화 조건 (useMemo 최적화)
   const isChanged = useMemo(() => geminiKey !== (apiKeys.gemini || ''), [geminiKey, apiKeys.gemini]);

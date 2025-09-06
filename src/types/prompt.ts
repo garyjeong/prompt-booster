@@ -3,6 +3,7 @@
  */
 
 import type { AIProvider } from "./api";
+import type { PromptComparisonAnalysis } from "./scoring";
 
 /** 단일 프롬프트 세션 데이터 */
 export interface PromptSession {
@@ -20,6 +21,10 @@ export interface PromptSession {
 	createdAt: string;
 	/** 복사 여부 */
 	copied?: boolean;
+	/** Demo 모드 여부 */
+	isDemoMode?: boolean;
+	/** 점수화 분석 결과 (옵션) */
+	scoringAnalysis?: PromptComparisonAnalysis;
 }
 
 /** 현재 프롬프트 작업 상태 */

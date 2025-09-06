@@ -26,6 +26,8 @@ import {
   SimpleGrid,
   Heading,
   Divider,
+  Wrap,
+  WrapItem,
 } from '@chakra-ui/react';
 import {
   SearchIcon,
@@ -39,14 +41,15 @@ import { useClipboard } from '@/hooks/useClipboard';
 import { PromptSession } from '@/types/prompt';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import ScoreGradeBadge from './ScoreGradeBadge';
 
 /**
  * 히스토리 필터 옵션
  */
 interface HistoryFilter {
   searchQuery: string;
-  sortBy: 'newest' | 'oldest' | 'provider';
-  provider: 'all' | 'gemini';
+  sortBy: 'newest' | 'oldest' | 'provider' | 'score';
+  provider: 'all' | 'gemini' | 'demo';
 }
 
 /**
@@ -87,7 +90,13 @@ export default function HistoryViewer() {
 
     // 프로바이더 필터링
     if (filter.provider !== 'all') {
-      sessions = sessions.filter((session) => session.provider === filter.provider);
+      if (filter.provider === 'demo') {
+        sessions = sessions.filter((session) => 
+          session.provider.includes('demo') || session.isDemoMode
+        );
+      } else {
+        sessions = sessions.filter((session) => session.provider === filter.provider);
+      }
     }
 
     // 정렬
@@ -99,6 +108,10 @@ export default function HistoryViewer() {
           return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         case 'provider':
           return a.provider.localeCompare(b.provider);
+        case 'score':
+          const scoreA = a.scoringAnalysis?.improvementScore?.overallScore ?? 0;
+          const scoreB = b.scoringAnalysis?.improvementScore?.overallScore ?? 0;
+          return scoreB - scoreA; // 높은 점수부터
         default:
           return 0;
       }
@@ -200,6 +213,7 @@ export default function HistoryViewer() {
               >
                 <option value="newest">최신순</option>
                 <option value="oldest">오래된순</option>
+                <option value="score">점수순</option>
                 <option value="provider">프로바이더순</option>
               </Select>
 
@@ -216,6 +230,7 @@ export default function HistoryViewer() {
               >
                 <option value="all">모든 AI</option>
                 <option value="gemini">Gemini</option>
+                <option value="demo">Demo</option>
               </Select>
             </HStack>
 
@@ -335,20 +350,48 @@ function HistoryCard({
           {/* 헤더 */}
           <HStack justify="space-between" align="start">
             <VStack align="start" spacing={1} flex={1}>
-              <HStack spacing={2}>
-                <Badge colorScheme="blue" variant="subtle">
-                  {session.provider === 'gemini' ? 'Gemini' : session.provider}
+              <HStack spacing={2} wrap="wrap">
+                <Badge 
+                  colorScheme={session.isDemoMode ? "purple" : "blue"} 
+                  variant="subtle"
+                >
+                  {session.isDemoMode ? '🎭 Demo' : 
+                   session.provider === 'gemini' ? 'Gemini' : session.provider}
                 </Badge>
+                
+                {/* 점수 배지 */}
+                {session.scoringAnalysis?.improvementScore && (
+                  <ScoreGradeBadge
+                    grade={session.scoringAnalysis.improvementScore.grade}
+                    score={session.scoringAnalysis.improvementScore.overallScore}
+                    size="sm"
+                  />
+                )}
+                
                 <HStack spacing={1} color={mutedTextColor} fontSize="xs">
                   <TimeIcon w={3} h={3} />
                   <Text>{formatTime(session.createdAt)}</Text>
                 </HStack>
               </HStack>
-              {session.processingTime && (
-                <Text fontSize="xs" color={mutedTextColor}>
-                  처리시간: {session.processingTime}ms
-                </Text>
-              )}
+              
+              <HStack spacing={4} fontSize="xs" color={mutedTextColor}>
+                {session.processingTime && (
+                  <Text>처리시간: {session.processingTime}ms</Text>
+                )}
+                
+                {/* 통계 정보 */}
+                {session.scoringAnalysis?.lengthAnalysis && (
+                  <Text>
+                    길이: ×{session.scoringAnalysis.lengthAnalysis.lengthIncreaseRatio.toFixed(1)}
+                  </Text>
+                )}
+                
+                {session.scoringAnalysis?.complexityAnalysis && (
+                  <Text>
+                    복잡도: +{Math.round(session.scoringAnalysis.complexityAnalysis.complexityIncrease)}
+                  </Text>
+                )}
+              </HStack>
             </VStack>
 
             <HStack spacing={1}>
@@ -421,6 +464,33 @@ function HistoryCard({
                 : truncateText(session.improvedPrompt)}
             </Text>
           </Box>
+
+          {/* 주요 개선 포인트 */}
+          {session.scoringAnalysis?.improvementScore?.keyImprovements && 
+           session.scoringAnalysis.improvementScore.keyImprovements.length > 0 && (
+            <>
+              <Divider />
+              <Box>
+                <Heading size="xs" color={textColor} mb={2}>
+                  ✨ 주요 개선 포인트
+                </Heading>
+                <Wrap spacing={2}>
+                  {session.scoringAnalysis.improvementScore.keyImprovements.map((improvement, index) => (
+                    <WrapItem key={index}>
+                      <Badge 
+                        colorScheme="green" 
+                        variant="subtle" 
+                        fontSize="xs"
+                        borderRadius="full"
+                      >
+                        {improvement}
+                      </Badge>
+                    </WrapItem>
+                  ))}
+                </Wrap>
+              </Box>
+            </>
+          )}
 
           {/* 확장/축소 버튼 */}
           {(session.originalPrompt.length > 150 || session.improvedPrompt.length > 150) && (

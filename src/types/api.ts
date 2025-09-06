@@ -2,8 +2,10 @@
  * API 관련 타입 정의
  */
 
+import type { PromptComparisonAnalysis } from './scoring';
+
 /** 지원하는 AI 프로바이더 */
-export type AIProvider = "gemini";
+export type AIProvider = "gemini" | "demo" | "demo-fallback";
 
 /** 프롬프트 개선 요청 */
 export interface PromptImprovementRequest {
@@ -23,6 +25,10 @@ export interface PromptImprovementResponse {
 	originalPrompt: string;
 	/** 처리 시간 (밀리초) */
 	processingTime: number;
+	/** Demo 모드 여부 */
+	isDemoMode?: boolean;
+	/** 점수화 분석 결과 (옵션) */
+	scoringAnalysis?: PromptComparisonAnalysis;
 }
 
 /** API 에러 응답 */

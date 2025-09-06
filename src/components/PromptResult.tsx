@@ -5,8 +5,6 @@ import {
   VStack, 
   HStack,
   useColorModeValue,
-  Badge,
-  Skeleton,
   Alert,
   AlertIcon,
   AlertDescription,
@@ -14,13 +12,29 @@ import {
   Flex
 } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
+import dynamic from 'next/dynamic';
 import CopyButton from './CopyButton';
+import type { PromptComparisonAnalysis } from '@/types/scoring';
+
+// ScoringDashboard 지연 로딩 (점수화 결과가 있을 때만 로드)
+const ScoringDashboard = dynamic(() => import('./ScoringDashboard'), {
+  loading: () => (
+    <Box p={4} textAlign="center">
+      <Text fontSize="sm" color="gray.500">점수화 결과를 분석하는 중...</Text>
+    </Box>
+  ),
+  ssr: false // 클라이언트에서만 로드
+});
 
 interface PromptResultProps {
   originalPrompt?: string;
   improvedPrompt?: string;
   isLoading?: boolean;
   error?: string;
+  scoringAnalysis?: PromptComparisonAnalysis;
+  provider?: string;
+  processingTime?: number;
+  isDemoMode?: boolean;
 }
 
 // 타이핑 애니메이션
@@ -33,11 +47,22 @@ const PromptResult = memo(function PromptResult({
   originalPrompt, 
   improvedPrompt, 
   isLoading = false,
-  error
+  error,
+  scoringAnalysis,
+  provider,
+  processingTime,
+  isDemoMode = false
 }: PromptResultProps) {
   const userBubbleBg = useColorModeValue('brand.500', 'brand.600');
   const aiBubbleBg = useColorModeValue('gray.100', 'gray.700');
-  const chatBg = useColorModeValue('gray.50', 'gray.800');
+  
+  // 모든 색상들을 미리 정의 (조건부 렌더링에서 사용)
+  const emptyStateBg = useColorModeValue('gray.100', 'gray.700');
+  const emptyStateTextColor = useColorModeValue('gray.700', 'gray.200');
+  const emptyStateSubTextColor = useColorModeValue('gray.500', 'gray.400');
+  const errorBg = useColorModeValue('red.100', 'red.900');
+  const errorBorderColor = useColorModeValue('red.200', 'red.700');
+  const promptTextColor = useColorModeValue('gray.800', 'gray.200');
 
   // 메모이제이션을 통한 성능 최적화
   const hasContent = useMemo(() => 
@@ -69,7 +94,7 @@ const PromptResult = memo(function PromptResult({
           w="80px"
           h="80px"
           borderRadius="full"
-          bg={useColorModeValue('gray.100', 'gray.700')}
+          bg={emptyStateBg}
           display="flex"
           alignItems="center"
           justifyContent="center"
@@ -81,12 +106,12 @@ const PromptResult = memo(function PromptResult({
           <Text 
             fontSize="xl" 
             fontWeight="semibold"
-            color={useColorModeValue('gray.700', 'gray.200')}
+            color={emptyStateTextColor}
           >
             프롬프트를 입력해보세요
           </Text>
           <Text 
-            color={useColorModeValue('gray.500', 'gray.400')}
+            color={emptyStateSubTextColor}
             maxW="md"
             lineHeight="1.6"
           >
@@ -104,9 +129,9 @@ const PromptResult = memo(function PromptResult({
         <Alert 
           status="error" 
           borderRadius="xl"
-          bg={useColorModeValue('red.50', 'red.900')}
+          bg={errorBg}
           border="1px"
-          borderColor={useColorModeValue('red.200', 'red.700')}
+          borderColor={errorBorderColor}
         >
           <AlertIcon />
           <AlertDescription fontSize="sm">
@@ -212,7 +237,7 @@ const PromptResult = memo(function PromptResult({
                       fontSize="sm" 
                       lineHeight="1.6"
                       wordBreak="break-word"
-                      color={useColorModeValue('gray.800', 'gray.200')}
+                      color={promptTextColor}
                     >
                       {improvedPrompt || '프롬프트를 개선하는 중입니다...'}
                     </Text>
@@ -243,6 +268,18 @@ const PromptResult = memo(function PromptResult({
             </VStack>
           </HStack>
         </Flex>
+
+        {/* 점수화 대시보드 (개선된 프롬프트가 있고 로딩 중이 아닐 때만 표시) */}
+        {!isLoading && scoringAnalysis && provider && processingTime !== undefined && (
+          <Box mt={6}>
+            <ScoringDashboard
+              scoringAnalysis={scoringAnalysis}
+              provider={provider}
+              processingTime={processingTime}
+              isDemoMode={isDemoMode}
+            />
+          </Box>
+        )}
       </VStack>
     </VStack>
   );
