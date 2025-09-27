@@ -2,7 +2,11 @@
  * API 관련 타입 정의
  */
 
-import type { PromptComparisonAnalysis } from './scoring';
+import type {
+	PromptComparisonAnalysis,
+	ScoringConfig,
+	ScoringCriteriaType,
+} from "./scoring";
 
 /** 지원하는 AI 프로바이더 */
 export type AIProvider = "gemini" | "demo" | "demo-fallback";
@@ -13,6 +17,8 @@ export interface PromptImprovementRequest {
 	prompt: string;
 	/** Gemini API 키 */
 	geminiKey?: string;
+	/** 점수화 설정(가중치/임계값 커스터마이징) */
+	scoringConfig?: Partial<ScoringConfig>;
 }
 
 /** 프롬프트 개선 응답 */
@@ -79,4 +85,30 @@ export interface ExtendedPromptImprovementRequest
 	extends PromptImprovementRequest {
 	/** 개선 옵션 */
 	options?: PromptImprovementOptions;
+}
+
+/** 점수 비교 요청 (A/B 비교) */
+export interface ScoringCompareRequest {
+	/** 동일한 원본 프롬프트 */
+	originalPrompt: string;
+	/** 개선안 A */
+	improvedPromptA: string;
+	/** 개선안 B */
+	improvedPromptB: string;
+	/** 선택적 점수화 설정 */
+	scoringConfig?: Partial<ScoringConfig>;
+}
+
+/** 점수 비교 응답 */
+export interface ScoringCompareResponse {
+	analysisA: PromptComparisonAnalysis;
+	analysisB: PromptComparisonAnalysis;
+	better: "A" | "B" | "equal";
+	scoreDiff: number;
+	criteriaDiffs: Array<{
+		criterion: ScoringCriteriaType;
+		scoreA: number;
+		scoreB: number;
+		diff: number;
+	}>;
 }

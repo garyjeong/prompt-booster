@@ -169,7 +169,8 @@ export async function processPromptImprovement(
 			const scoringService = new ScoringService();
 			scoringAnalysis = await scoringService.analyzeImprovement(
 				request.prompt,
-				improvedPrompt
+				improvedPrompt,
+				request.scoringConfig
 			);
 
 			// 점수 히스토리에 저장
