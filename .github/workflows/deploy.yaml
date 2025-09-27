@@ -1,9 +1,9 @@
-name: Build, Push to ECR and Rollout to EKS
+# .github/workflows/deploy.yaml
+name: Publish Docker image to ECR
 
 on:
   push:
     branches: ["main"]
-  workflow_dispatch: {}
 
 permissions:
   id-token: write
