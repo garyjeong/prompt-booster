@@ -1,9 +1,11 @@
 # Multi-stage build for Next.js app (Node 18 + pnpm via Corepack)
 
-FROM node:18-bullseye-slim AS builder
+FROM node:20-bullseye-slim AS builder
 
 ENV NODE_ENV=production \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    CI=1 \
+    NODE_OPTIONS=--max-old-space-size=2048
 
 WORKDIR /app
 
@@ -27,11 +29,11 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # Build app
-RUN pnpm build
+RUN pnpm --version && node --version && pnpm build
 
 
 # Runtime image
-FROM node:18-bullseye-slim AS runner
+FROM node:20-bullseye-slim AS runner
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
