@@ -1,6 +1,6 @@
 # Multi-stage build for Next.js app (Node 18 + pnpm via Corepack)
 
-FROM node:18-alpine AS builder
+FROM node:18-bullseye-slim AS builder
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
@@ -8,10 +8,17 @@ ENV NODE_ENV=production \
 WORKDIR /app
 
 # Enable pnpm via corepack and align to packageManager in package.json
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Only copy lockfiles and package manifest first for better caching
 COPY package.json pnpm-lock.yaml ./
+
+# Ensure system deps for sharp/canvas if used (safe no-ops otherwise)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    build-essential \
+    python3 \
+  && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies (prod + dev for build)
 RUN pnpm install --frozen-lockfile
@@ -24,7 +31,7 @@ RUN pnpm build
 
 
 # Runtime image
-FROM node:18-alpine AS runner
+FROM node:18-bullseye-slim AS runner
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
