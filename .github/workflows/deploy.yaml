@@ -1,77 +1,109 @@
-name: CI and Deploy
+name: Build, Push to ECR and Rollout to EKS
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: ["main"]
   workflow_dispatch: {}
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
-  test:
+  build-and-push-to-ecr:
+    name: Build and Push to ECR
     runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-northeast-2
+      ECR_REPOSITORY: spark-prompt
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Configure AWS credentials (Access Keys)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          version: 9
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: WhoAmI (AWS)
+        run: |
+          aws sts get-caller-identity
+
+      - name: Determine ECR registry
+        id: acct
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "ECR_REGISTRY=${ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com" >> $GITHUB_ENV
+
+      - name: Ensure ECR repository exists
+        run: |
+          aws ecr describe-repositories --repository-names "${{ env.ECR_REPOSITORY }}" --region "${{ env.AWS_REGION }}" >/dev/null 2>&1 || {
+            aws ecr create-repository \
+              --repository-name "${{ env.ECR_REPOSITORY }}" \
+              --region "${{ env.AWS_REGION }}" \
+              --image-scanning-configuration scanOnPush=true \
+              --encryption-configuration encryptionType=AES256; }
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          node-version: "18"
-          cache: "pnpm"
+          images: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Generate timestamp tag (ms)
+        id: ts
+        run: |
+          echo "tag=ts-$(date +%s%3N)" >> $GITHUB_OUTPUT
 
-      - name: Lint
-        run: pnpm lint || true
-
-      - name: Run tests
-        env:
-          NODE_ENV: test
-          SKIP_INTEGRATION_TESTS: "true"
-          ENABLE_IMPROVEMENT_SCORING: "true"
-        run: pnpm test --color
-
-  deploy:
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
         with:
-          version: 9
+          platforms: linux/amd64
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
         with:
-          node-version: "18"
-          cache: "pnpm"
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ steps.ts.outputs.tag }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build
-        env:
-          NEXT_TELEMETRY_DISABLED: "1"
-        run: pnpm build
-
-      - name: Deploy with Vercel CLI
-        uses: amondnet/vercel-action@v25
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ./
-          vercel-args: --prod
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          version: latest
+
+      - name: Update kubeconfig for EKS (assumed creds in env)
+        run: |
+          aws eks update-kubeconfig --name gary-cluster --region ${{ env.AWS_REGION }}
+
+      - name: Sanity check EKS auth
+        run: |
+          kubectl version --short || true
+          kubectl auth can-i get pods -A || true
+
+      - name: Rollout new image to EKS
+        run: |
+          set -e
+          DEPLOY="spark-prompt"
+          NAMESPACE="gary-app"
+          IMAGE="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ steps.ts.outputs.tag }}"
+          kubectl -n "$NAMESPACE" set image deploy/$DEPLOY $DEPLOY=$IMAGE --record
+          kubectl -n "$NAMESPACE" annotate deploy/$DEPLOY deploy.garyzone.pro/image-tag=${{ steps.ts.outputs.tag }} --overwrite
+          kubectl -n "$NAMESPACE" rollout status deploy/$DEPLOY
