@@ -201,16 +201,17 @@ describe("Prompt API Logic", () => {
 			);
 		});
 
-		it("should handle missing API key", async () => {
+		it("should fallback to demo mode when API key is missing", async () => {
 			delete process.env.GEMINI_API_KEY;
 
 			const request: PromptImprovementRequest = {
 				prompt: "테스트",
 			};
 
-			await expect(processPromptImprovement(request)).rejects.toThrow(
-				"Gemini API 키가 없습니다"
-			);
+			const result = await processPromptImprovement(request);
+			expect(result.isDemoMode).toBe(true);
+			expect(["demo", "demo-fallback"]).toContain(result.provider);
+			expect(result.improvedPrompt).toBeTruthy();
 		});
 
 		it("should work with user-provided key", async () => {
