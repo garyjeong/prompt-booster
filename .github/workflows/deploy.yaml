@@ -95,8 +95,14 @@ jobs:
 
       - name: Sanity check EKS auth
         run: |
+          echo "=== AWS Identity ==="
+          aws sts get-caller-identity
+          echo "=== Kubectl version ==="
           kubectl version --short || true
+          echo "=== Auth check ==="
           kubectl auth can-i get pods -A || true
+          echo "=== Available namespaces ==="
+          kubectl get namespaces || true
 
       - name: Rollout new image to EKS
         run: |
@@ -104,6 +110,16 @@ jobs:
           DEPLOY="spark-prompt"
           NAMESPACE="gary-app"
           IMAGE="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ steps.ts.outputs.tag }}"
-          kubectl -n "$NAMESPACE" set image deploy/$DEPLOY $DEPLOY=$IMAGE --record
+
+          # Check if deployment exists first
+          if ! kubectl -n "$NAMESPACE" get deploy/$DEPLOY >/dev/null 2>&1; then
+            echo "Deployment $DEPLOY not found in namespace $NAMESPACE"
+            echo "Available deployments:"
+            kubectl -n "$NAMESPACE" get deploy || true
+            exit 1
+          fi
+
+          # Update image and wait for rollout
+          kubectl -n "$NAMESPACE" set image deploy/$DEPLOY $DEPLOY=$IMAGE
           kubectl -n "$NAMESPACE" annotate deploy/$DEPLOY deploy.garyzone.pro/image-tag=${{ steps.ts.outputs.tag }} --overwrite
-          kubectl -n "$NAMESPACE" rollout status deploy/$DEPLOY
+          kubectl -n "$NAMESPACE" rollout status deploy/$DEPLOY --timeout=300s
