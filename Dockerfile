@@ -38,8 +38,8 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
+# Create non-root user (Debian utils)
+RUN groupadd -r nodejs && useradd -r -g nodejs nextjs
 
 # Copy necessary files from builder
 COPY --from=builder /app/package.json ./
