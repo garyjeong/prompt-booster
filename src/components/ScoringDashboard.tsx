@@ -117,7 +117,7 @@ const ScoringDashboard: React.FC<ScoringDashboardProps> = memo(({
           </Flex>
 
           {/* 메인 점수 표시 */}
-          <HStack spacing={6} align="center" justify="center" py={4}>
+          <HStack spacing={6} align="center" justify="center" py={4} flexWrap="wrap">
             <VStack spacing={2}>
               <Text fontSize="4xl" fontWeight="black" 
                 color={improvementScore.grade === 'EXCELLENT' ? 'green.500' : 
@@ -154,8 +154,8 @@ const ScoringDashboard: React.FC<ScoringDashboardProps> = memo(({
           )}
 
           {/* 통계 정보 */}
-          <HStack spacing={4} justify="center">
-            <Stat textAlign="center" bg={statBg} borderRadius="lg" p={3} minW="120px">
+          <HStack spacing={4} justify="center" flexWrap="wrap">
+            <Stat textAlign="center" bg={statBg} borderRadius="lg" p={3} minW="120px" flex="1 1 140px">
               <StatLabel fontSize="xs">길이 증가</StatLabel>
               <StatNumber fontSize="lg">
                 ×{stats.lengthIncrease.toFixed(1)}
@@ -166,7 +166,7 @@ const ScoringDashboard: React.FC<ScoringDashboardProps> = memo(({
               </StatHelpText>
             </Stat>
 
-            <Stat textAlign="center" bg={statBg} borderRadius="lg" p={3} minW="120px">
+            <Stat textAlign="center" bg={statBg} borderRadius="lg" p={3} minW="120px" flex="1 1 140px">
               <StatLabel fontSize="xs">복잡도 증가</StatLabel>
               <StatNumber fontSize="lg">
                 +{stats.complexityIncrease}

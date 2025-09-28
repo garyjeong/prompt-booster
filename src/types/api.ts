@@ -7,12 +7,21 @@ import type { PromptComparisonAnalysis } from "./scoring";
 /** 지원하는 AI 프로바이더 */
 export type AIProvider = "gemini" | "demo" | "demo-fallback";
 
+/** 대상 모델 (Gemini 엔진으로 생성할 목표 모델 스타일) */
+export type TargetModel =
+	| "gpt-5"
+	| "gemini-2.5-pro"
+	| "claude-4-sonnet"
+	| "claude-4-opus";
+
 /** 프롬프트 개선 요청 */
 export interface PromptImprovementRequest {
 	/** 개선할 원본 프롬프트 */
 	prompt: string;
 	/** Gemini API 키 */
 	geminiKey?: string;
+	/** 생성할 목표 모델 스타일 (백워드 호환: 미지정 시 기본 전략 사용) */
+	targetModel?: TargetModel;
 }
 
 /** 프롬프트 개선 응답 */
@@ -21,6 +30,8 @@ export interface PromptImprovementResponse {
 	improvedPrompt: string;
 	/** 사용된 AI 프로바이더 */
 	provider: AIProvider;
+	/** 생성된 목표 모델 스타일 (있다면) */
+	targetModel?: TargetModel;
 	/** 원본 프롬프트 */
 	originalPrompt: string;
 	/** 처리 시간 (밀리초) */

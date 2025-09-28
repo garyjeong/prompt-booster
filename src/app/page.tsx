@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { VStack, HStack, Button, Box, Text, useColorModeValue } from '@chakra-ui/react';
+import { useState, useEffect } from 'react';
+import { VStack, HStack, Stack, Button, Box, Text, useColorModeValue, Select } from '@chakra-ui/react';
 import { TimeIcon } from '@chakra-ui/icons';
 import dynamic from 'next/dynamic';
 import Layout from '@/components/Layout';
 import PromptInput from '@/components/PromptInput';
 import PromptResult from '@/components/PromptResult';
 import ColorModeToggle from '@/components/ColorModeToggle';
+import ModelInfo from '@/components/ModelInfo';
 
 // ApiKeyInput 지연 로딩 (설정 버튼 클릭 시에만 로드)
 const ApiKeyInput = dynamic(() => import('@/components/ApiKeyInput'), {
@@ -21,13 +22,13 @@ const ApiKeyInput = dynamic(() => import('@/components/ApiKeyInput'), {
 import { ApiKeyProvider, useApiKeys } from '@/context/ApiKeyContext';
 import { PromptProvider, useCurrentPrompt, usePromptHistory } from '@/context/PromptContext';
 import { withCache, generateCacheKey } from '@/lib/api-cache';
-import type { PromptImprovementRequest, APIResponse, PromptImprovementResponse } from '@/types/api';
+import type { PromptImprovementRequest, APIResponse, PromptImprovementResponse, TargetModel } from '@/types/api';
 import type { PromptComparisonAnalysis } from '@/types/scoring';
 
 /** 실제 API를 호출하는 프롬프트 개선 함수 (캐싱 적용) */
 async function improvePrompt(request: PromptImprovementRequest): Promise<PromptImprovementResponse> {
   // 캐시 키 생성
-  const cacheKey = generateCacheKey(request.prompt, 'gemini');
+  const cacheKey = generateCacheKey(request.prompt, `gemini:${request.targetModel || 'gpt-5'}`);
   
   // 캐시된 응답이 있으면 즉시 반환
   return withCache(
@@ -75,6 +76,31 @@ function PromptBoosterApp() {
   const [provider, setProvider] = useState<string>('');
   const [processingTime, setProcessingTime] = useState<number>(0);
   const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+  
+  // 대상 모델 선택 상태 관리
+  const [selectedTargetModel, setSelectedTargetModel] = useState<TargetModel>('gpt-5');
+
+  // LocalStorage에서 마지막 선택 모델 복원
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('prompt_booster_target_model');
+      if (saved && ['gpt-5', 'gemini-2.5-pro', 'claude-4-sonnet', 'claude-4-opus'].includes(saved)) {
+        setSelectedTargetModel(saved as TargetModel);
+      }
+    } catch (error) {
+      console.warn('대상 모델 설정 로드 실패:', error);
+    }
+  }, []);
+
+  // 모델 변경 시 LocalStorage에 저장
+  const handleTargetModelChange = (model: TargetModel) => {
+    setSelectedTargetModel(model);
+    try {
+      localStorage.setItem('prompt_booster_target_model', model);
+    } catch (error) {
+      console.warn('대상 모델 설정 저장 실패:', error);
+    }
+  };
 
   const handlePromptSubmit = async (prompt: string) => {
     // 상태 초기화 및 설정
@@ -94,6 +120,7 @@ function PromptBoosterApp() {
 			const request: PromptImprovementRequest = {
 				prompt,
 				geminiKey: apiKeys.gemini,
+				targetModel: selectedTargetModel,
 			};
 
       const result = await improvePrompt(request);
@@ -114,6 +141,7 @@ function PromptBoosterApp() {
         originalPrompt: prompt,
         improvedPrompt: result.improvedPrompt,
         provider: result.provider,
+        targetModel: result.targetModel,
         processingTime: result.processingTime,
         isDemoMode: result.isDemoMode,
         scoringAnalysis: result.scoringAnalysis,
@@ -136,8 +164,10 @@ function PromptBoosterApp() {
     <Layout>
       <VStack spacing={0} align="stretch" w="full">
         {/* 상단 컨트롤 바 - 미니멀한 디자인 */}
-        <HStack 
-          justify="space-between" 
+        <Stack 
+          direction={{ base: 'column', md: 'row' }}
+          justify={{ base: 'flex-start', md: 'space-between' }}
+          align={{ base: 'stretch', md: 'center' }}
           w="full" 
           mb={8}
           px={4}
@@ -145,13 +175,28 @@ function PromptBoosterApp() {
           bg={useColorModeValue('gray.50', 'gray.800')}
           borderRadius="2xl"
           shadow="sm"
+          spacing={{ base: 3, md: 4 }}
         >
-          <HStack spacing={2}>
+          <HStack spacing={3} flexWrap="wrap">
             <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('gray.600', 'gray.300')}>
-              도구
+              대상 모델
             </Text>
+            <Select
+              value={selectedTargetModel}
+              onChange={(e) => handleTargetModelChange(e.target.value as TargetModel)}
+              size="sm"
+              w={{ base: 'full', md: '180px' }}
+              borderRadius="lg"
+              bg={useColorModeValue('white', 'gray.700')}
+            >
+              <option value="gpt-5">GPT-5</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+              <option value="claude-4-sonnet">Claude 4 Sonnet</option>
+              <option value="claude-4-opus">Claude 4 Opus</option>
+            </Select>
+            <ModelInfo targetModel={selectedTargetModel} />
           </HStack>
-          <HStack spacing={2}>
+          <HStack spacing={2} justify={{ base: 'flex-start', md: 'flex-end' }}>
             <Button
               variant="ghost"
               size="sm"
@@ -164,7 +209,7 @@ function PromptBoosterApp() {
             <ColorModeToggle size="sm" variant="ghost" />
             <ApiKeyInput />
           </HStack>
-        </HStack>
+        </Stack>
 
         {/* 대화형 메인 영역 */}
         <VStack spacing={6} align="stretch" flex="1">
@@ -176,6 +221,7 @@ function PromptBoosterApp() {
             error={current.error}
             scoringAnalysis={scoringAnalysis}
             provider={provider}
+            targetModel={selectedTargetModel}
             processingTime={processingTime}
             isDemoMode={isDemoMode}
           />

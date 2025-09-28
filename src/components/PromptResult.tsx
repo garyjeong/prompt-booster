@@ -15,6 +15,7 @@ import { keyframes } from '@emotion/react';
 import dynamic from 'next/dynamic';
 import CopyButton from './CopyButton';
 import type { PromptComparisonAnalysis } from '@/types/scoring';
+import type { TargetModel } from '@/types/api';
 
 // ScoringDashboard 지연 로딩 (점수화 결과가 있을 때만 로드)
 const ScoringDashboard = dynamic(() => import('./ScoringDashboard'), {
@@ -33,6 +34,7 @@ interface PromptResultProps {
   error?: string;
   scoringAnalysis?: PromptComparisonAnalysis;
   provider?: string;
+  targetModel?: TargetModel;
   processingTime?: number;
   isDemoMode?: boolean;
 }
@@ -50,6 +52,7 @@ const PromptResult = memo(function PromptResult({
   error,
   scoringAnalysis,
   provider,
+  targetModel,
   processingTime,
   isDemoMode = false
 }: PromptResultProps) {
@@ -145,7 +148,7 @@ const PromptResult = memo(function PromptResult({
         {/* 사용자 메시지 (원본 프롬프트) */}
         {shouldShowOriginal && (
           <Flex justify="flex-end" w="full">
-            <HStack spacing={3} maxW="85%" align="flex-end">
+            <HStack spacing={3} maxW={{ base: '100%', md: '85%' }} align="flex-end">
               <VStack spacing={1} align="flex-end" flex="1">
                 <Text fontSize="xs" color="gray.500" fontWeight="medium">
                   당신
@@ -178,7 +181,7 @@ const PromptResult = memo(function PromptResult({
 
         {/* AI 응답 (개선된 프롬프트) */}
         <Flex justify="flex-start" w="full">
-          <HStack spacing={3} maxW="85%" align="flex-end">
+          <HStack spacing={3} maxW={{ base: '100%', md: '85%' }} align="flex-end">
             <Avatar
               size="sm"
               bg="gray.600"
@@ -189,9 +192,19 @@ const PromptResult = memo(function PromptResult({
               ✨
             </Avatar>
             <VStack spacing={1} align="flex-start" flex="1">
-              <Text fontSize="xs" color="gray.500" fontWeight="medium">
-                Prompt Booster AI
-              </Text>
+              <HStack spacing={2}>
+                <Text fontSize="xs" color="gray.500" fontWeight="medium">
+                  Prompt Booster AI
+                </Text>
+                {targetModel && (
+                  <Text fontSize="xs" color="blue.500" fontWeight="medium" bg={useColorModeValue('blue.50', 'blue.900')} px={2} py={0.5} borderRadius="md">
+                    {targetModel === 'gpt-5' ? 'GPT-5' :
+                     targetModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' :
+                     targetModel === 'claude-4-sonnet' ? 'Claude 4 Sonnet' :
+                     targetModel === 'claude-4-opus' ? 'Claude 4 Opus' : targetModel}
+                  </Text>
+                )}
+              </HStack>
               <Box
                 bg={aiBubbleBg}
                 px={4}

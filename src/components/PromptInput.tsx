@@ -176,14 +176,17 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
           {/* 하단 정보 바 */}
           <HStack 
             justify="space-between" 
-            align="center"
+            align={{ base: 'stretch', sm: 'center' }}
+            direction={{ base: 'column', sm: 'row' }}
             px={6}
             py={3}
             bg={useColorModeValue('gray.50', 'gray.700')}
             borderTop="1px"
             borderColor={borderColor}
+            spacing={{ base: 2, sm: 4 }}
+            flexWrap="wrap"
           >
-            <HStack spacing={4}>
+            <HStack spacing={4} flexWrap="wrap">
               <Text fontSize="xs" color="gray.500">
                 Ctrl+Enter로 전송
               </Text>
@@ -200,7 +203,7 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
             
             {/* 캐릭터 제한 프로그레스 (데모 모드에서만) */}
             {isDemoMode && (
-              <Box w="60px">
+              <Box w={{ base: '0', xs: '60px', sm: '80px' }} display={{ base: 'none', xs: 'block' }}>
                 <Progress
                   value={progressValue}
                   size="sm"

@@ -38,7 +38,7 @@ export default function HistoryPage() {
         <Container maxW="container.xl" py={8}>
           <VStack spacing={6} align="stretch">
             {/* 헤더 */}
-            <HStack justify="space-between" align="center">
+            <HStack justify="space-between" align={{ base: 'stretch', md: 'center' }} flexWrap="wrap" spacing={{ base: 3, md: 4 }}>
               <VStack align="start" spacing={2}>
                 <Heading size="lg" color={headingColor}>
                   프롬프트 히스토리
@@ -48,7 +48,7 @@ export default function HistoryPage() {
                 </Text>
               </VStack>
               
-              <HStack spacing={3}>
+              <HStack spacing={3} justify={{ base: 'flex-start', md: 'flex-end' }}>
                 <ColorModeToggle size="sm" variant="outline" />
                 <Button
                   leftIcon={<ArrowBackIcon />}

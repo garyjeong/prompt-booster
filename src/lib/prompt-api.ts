@@ -8,6 +8,7 @@ import type {
 	PromptImprovementRequest,
 	PromptImprovementResponse,
 	AIProvider,
+	TargetModel,
 } from "@/types/api";
 import { ScoringService } from "@/lib/scoring/ScoringService";
 import type { PromptComparisonAnalysis } from "@/types/scoring";
@@ -16,8 +17,8 @@ import {
 	isDemoModeRequired,
 } from "@/lib/demo-prompt-improver";
 
-/** 프롬프트 개선을 위한 시스템 메시지 */
-const SYSTEM_PROMPT = `You are an expert prompt engineer. Your task is to improve user prompts to get better responses from AI coding assistants.
+/** 프롬프트 개선을 위한 시스템 메시지 (기본 베이스) */
+const BASE_SYSTEM_PROMPT = `You are an expert prompt engineer. Your task is to improve user prompts to get better responses from AI coding assistants.
 
 Transform the user's prompt by:
 1. Adding clear context and requirements
@@ -34,17 +35,62 @@ Guidelines:
 
 Return only the improved prompt in Korean, without any additional explanation or meta-text.`;
 
-/** Google Gemini를 사용한 프롬프트 개선 */
+/** 대상 모델별 가이드 텍스트 */
+const MODEL_PROFILES: Record<
+	TargetModel,
+	{
+		label: string;
+		guidance: string;
+	}
+> = {
+	"gpt-5": {
+		label: "GPT-5",
+		guidance:
+			"- The improved prompt must be optimized for GPT-5 capabilities.\n- Prefer concise, verifiable steps; emphasize tool-use readiness and explicit output formats.\n- Include guardrails for safety and deterministic behavior when possible.",
+	},
+	"gemini-2.5-pro": {
+		label: "Gemini 2.5 Pro",
+		guidance:
+			"- Optimize for Gemini 2.5 Pro.\n- Provide clear sections, multimodal-friendly hints (if relevant), and precise constraints.\n- Prefer structured bullet points and explicit evaluation criteria.",
+	},
+	"claude-4-sonnet": {
+		label: "Claude 4 Sonnet",
+		guidance:
+			"- Optimize for Claude 4 Sonnet.\n- Encourage step-by-step reasoning and safety-aware instructions.\n- Ask for concise yet comprehensive outputs with clear headings.",
+	},
+	"claude-4-opus": {
+		label: "Claude 4 Opus",
+		guidance:
+			"- Optimize for Claude 4 Opus.\n- Allow deeper analysis, nuanced trade-offs, and explicit assumptions.\n- Prefer highly structured outputs with validation and testability.",
+	},
+};
+
+function getDefaultTargetModel(): TargetModel {
+	return "gpt-5";
+}
+
+/** 대상 모델용 시스템 프롬프트 생성 */
+export function buildSystemPromptForTarget(targetModel: TargetModel): string {
+	const profile =
+		MODEL_PROFILES[targetModel] ?? MODEL_PROFILES[getDefaultTargetModel()];
+	return `${BASE_SYSTEM_PROMPT}\n\nTarget model: ${profile.label}\nModel-specific guidance:\n${profile.guidance}`;
+}
+
+/** Google Gemini를 사용한 프롬프트 개선 (대상 모델 가이드 반영) */
 export async function improveWithGemini(
 	prompt: string,
-	apiKey: string
+	apiKey: string,
+	targetModel?: TargetModel
 ): Promise<string> {
 	try {
 		const genAI = new GoogleGenerativeAI(apiKey);
 		const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
+		const resolvedTarget = targetModel ?? getDefaultTargetModel();
+		const systemPrompt = buildSystemPromptForTarget(resolvedTarget);
+
 		const result = await model.generateContent(
-			`${SYSTEM_PROMPT}\n\n개선할 프롬프트:\n${prompt}`
+			`${systemPrompt}\n\n개선할 프롬프트:\n${prompt}`
 		);
 		const response = await result.response;
 		const improvedPrompt = response.text();
@@ -88,6 +134,23 @@ export function validateRequest(request: unknown): {
 		return { isValid: false, error: "프롬프트가 너무 깁니다. (최대 2000자)" };
 	}
 
+	// targetModel 유효성 검사 (선택적)
+	if (requestObj.targetModel !== undefined) {
+		const value = requestObj.targetModel;
+		const allowed: TargetModel[] = [
+			"gpt-5",
+			"gemini-2.5-pro",
+			"claude-4-sonnet",
+			"claude-4-opus",
+		];
+		if (typeof value !== "string" || !allowed.includes(value as TargetModel)) {
+			return {
+				isValid: false,
+				error: "잘못된 요청: 지원하지 않는 targetModel 입니다.",
+			};
+		}
+	}
+
 	return { isValid: true };
 }
 
@@ -123,6 +186,8 @@ export async function processPromptImprovement(
 
 	let improvedPrompt: string;
 	let provider: AIProvider;
+	const resolvedTargetModel: TargetModel =
+		request.targetModel ?? getDefaultTargetModel();
 	let isDemoMode = false;
 
 	try {
@@ -137,8 +202,12 @@ export async function processPromptImprovement(
 			provider = "demo";
 			isDemoMode = true;
 		} else {
-			// Gemini API를 통한 프롬프트 개선 시도
-			improvedPrompt = await improveWithGemini(request.prompt, geminiKey);
+			// Gemini API를 통한 프롬프트 개선 시도 (대상 모델 가이드 반영)
+			improvedPrompt = await improveWithGemini(
+				request.prompt,
+				geminiKey,
+				resolvedTargetModel
+			);
 			provider = "gemini";
 		}
 	} catch (apiError) {
@@ -157,6 +226,7 @@ export async function processPromptImprovement(
 	const response: PromptImprovementResponse & { isDemoMode?: boolean } = {
 		improvedPrompt,
 		provider,
+		targetModel: resolvedTargetModel,
 		originalPrompt: request.prompt,
 		processingTime,
 		isDemoMode,
@@ -200,6 +270,7 @@ export function getApiStatus() {
 		endpoint: "/api/improve",
 		methods: ["POST"],
 		provider: "gemini",
+		supportedTargetModels: Object.keys(MODEL_PROFILES),
 		version: "1.0.0",
 	};
 }

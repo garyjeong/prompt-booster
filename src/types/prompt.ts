@@ -2,7 +2,7 @@
  * 프롬프트 상태 관리 관련 타입 정의
  */
 
-import type { AIProvider } from "./api";
+import type { AIProvider, TargetModel } from "./api";
 import type { PromptComparisonAnalysis } from "./scoring";
 
 /** 단일 프롬프트 세션 데이터 */
@@ -15,6 +15,8 @@ export interface PromptSession {
 	improvedPrompt: string;
 	/** 사용된 AI 프로바이더 */
 	provider: AIProvider;
+	/** 대상 모델 (있다면) */
+	targetModel?: TargetModel;
 	/** 처리 시간 (밀리초) */
 	processingTime: number;
 	/** 생성 시간 */

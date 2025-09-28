@@ -178,7 +178,7 @@ function encodeToBase64(str: string): string {
 /**
  * 캐시 키 생성 함수
  * @param prompt 원본 프롬프트
- * @param provider AI 제공자
+ * @param provider AI 제공자 (또는 provider:targetModel 형태)
  * @returns 캐시 키
  */
 export function generateCacheKey(prompt: string, provider: string): string {

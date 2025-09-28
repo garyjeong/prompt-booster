@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
 					  (error.message.includes("잘못된 요청") ||
 							error.message.includes("프롬프트가 필요") ||
 							error.message.includes("빈 프롬프트") ||
-							error.message.includes("너무 깁니다"))
+							error.message.includes("너무 깁니다") ||
+							error.message.includes("지원하지 않는 targetModel"))
 					? "INVALID_REQUEST"
 					: "INTERNAL_ERROR",
 			details: error instanceof Error ? error.stack : undefined,
