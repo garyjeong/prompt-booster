@@ -1,10 +1,8 @@
-import { useIsDemoMode } from '@/context/ApiKeyContext';
 import { ArrowUpIcon } from '@chakra-ui/icons';
 import {
     Box,
     HStack,
     IconButton,
-    Progress,
     Text,
     Textarea,
     Tooltip,
@@ -18,62 +16,34 @@ interface PromptInputProps {
   isLoading?: boolean;
 }
 
-const DEMO_MODE_MAX_LENGTH = 2000; // 서버 API 모드 최대 글자 수 (API 라우트와 동일)
+const MAX_LENGTH = 1000;
+const MIN_LENGTH = 100;
 
 const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: PromptInputProps) {
   const [prompt, setPrompt] = useState('');
-  const isDemoMode = useIsDemoMode();
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
-  
-  // Alert 색상들 (조건부 렌더링 밖에서 미리 정의)
-  const alertBg = useColorModeValue('blue.50', 'blue.900');
-  const alertBorderColor = useColorModeValue('blue.200', 'blue.700');
-  const progressBg = useColorModeValue('gray.200', 'gray.600');
 
-  // 데모 모드에서 입력 제한 처리 (useCallback으로 최적화)
+  // 입력 길이 제한 처리
   const handlePromptChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
-    
-    if (isDemoMode && newValue.length > DEMO_MODE_MAX_LENGTH) {
-      // 데모 모드에서는 최대 글자 수 제한
-      return;
-    }
-    
-    setPrompt(newValue);
-  }, [isDemoMode]);
+    setPrompt(newValue.length > MAX_LENGTH ? newValue.slice(0, MAX_LENGTH) : newValue);
+  }, []);
 
   const handleSubmit = useCallback(() => {
-    if (prompt.trim() && onSubmit) {
+    if (onSubmit && prompt.trim().length >= MIN_LENGTH) {
       onSubmit(prompt.trim());
     }
   }, [prompt, onSubmit]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  }, [handleSubmit]);
-
   // 현재 글자 수와 진행률 계산 (useMemo로 최적화)
   const currentLength = prompt.length;
-  
-  const progressValue = useMemo(() => 
-    isDemoMode ? (currentLength / DEMO_MODE_MAX_LENGTH) * 100 : 0,
-    [isDemoMode, currentLength]
-  );
-  
-  const isNearLimit = useMemo(() => 
-    isDemoMode && currentLength > DEMO_MODE_MAX_LENGTH * 0.8,
-    [isDemoMode, currentLength]
-  );
+  const isNearLimit = useMemo(() => currentLength > MAX_LENGTH * 0.9, [currentLength]);
+  const canSubmit = useMemo(() => currentLength >= MIN_LENGTH, [currentLength]);
 
-  const placeholderText = useMemo(() => 
-    isDemoMode 
-      ? `서버 API 모드: 최대 ${DEMO_MODE_MAX_LENGTH}자 (예: 리액트에서 useState를 사용하는 방법을 자세히 설명해줘)`
-      : "예: 리액트에서 useState를 사용하는 방법을 자세히 설명해줘",
-    [isDemoMode]
+  const placeholderText = useMemo(() =>
+    "예: 리액트에서 useState를 사용하는 방법을 자세히 설명해줘",
+    []
   );
 
   return (
@@ -101,7 +71,6 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
             <Textarea
               value={prompt}
               onChange={handlePromptChange}
-              onKeyDown={handleKeyDown}
               placeholder={placeholderText}
               minHeight="120px"
               maxHeight="300px"
@@ -127,7 +96,7 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
             {/* 통합된 전송 버튼 */}
             <Box position="absolute" bottom={4} right={4}>
               <Tooltip 
-                label={prompt.trim() ? "프롬프트 개선하기" : "프롬프트를 입력해주세요"}
+                label={canSubmit ? "프롬프트 개선하기" : `${MIN_LENGTH}자 이상 입력해주세요`}
                 hasArrow
               >
                 <IconButton
@@ -135,14 +104,14 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
                   icon={<ArrowUpIcon />}
                   onClick={handleSubmit}
                   isLoading={isLoading}
-                  isDisabled={!prompt.trim() || isLoading}
+                  isDisabled={!canSubmit || isLoading}
                   size="sm"
                   colorScheme="brand"
                   borderRadius="xl"
-                  bg={prompt.trim() ? "brand.500" : "gray.300"}
+                  bg={canSubmit ? "brand.500" : "gray.300"}
                   color="white"
                   _hover={{
-                    bg: prompt.trim() ? "brand.600" : "gray.400",
+                    bg: canSubmit ? "brand.600" : "gray.400",
                     transform: "scale(1.05)"
                   }}
                   _active={{
@@ -161,39 +130,18 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
             direction={{ base: 'column', sm: 'row' }}
             px={6}
             py={3}
-            bg={useColorModeValue('gray.50', 'gray.700')}
-            borderTop="1px"
-            borderColor={borderColor}
+            bg={bgColor}
             spacing={{ base: 2, sm: 4 }}
             flexWrap="wrap"
           >
             <HStack spacing={4} flexWrap="wrap">
-              <Text fontSize="xs" color="gray.500">
-                Ctrl+Enter로 전송
+              <Text fontSize="xs" color={isNearLimit ? "orange.500" : "gray.500"} fontWeight="medium">
+                {currentLength}/{MAX_LENGTH}자
               </Text>
-              {isDemoMode && (
-                <Text 
-                  fontSize="xs"
-                  color={isNearLimit ? "orange.500" : "gray.500"}
-                  fontWeight="medium"
-                >
-                  {currentLength}/{DEMO_MODE_MAX_LENGTH}자
-                </Text>
-              )}
+              <Text fontSize="xs" color={canSubmit ? "brand.600" : "gray.500"}>
+                {canSubmit ? '전송 가능' : `${MIN_LENGTH}자 이상 입력 시 전송 가능`}
+              </Text>
             </HStack>
-            
-            {/* 캐릭터 제한 프로그레스 (데모 모드에서만) */}
-            {isDemoMode && (
-              <Box w={{ base: '0', xs: '60px', sm: '80px' }} display={{ base: 'none', xs: 'block' }}>
-                <Progress
-                  value={progressValue}
-                  size="sm"
-                  colorScheme={isNearLimit ? "orange" : "brand"}
-                  borderRadius="full"
-                  bg={progressBg}
-                />
-              </Box>
-            )}
           </HStack>
         </VStack>
       </Box>
