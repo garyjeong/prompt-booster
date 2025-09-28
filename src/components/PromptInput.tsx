@@ -3,6 +3,7 @@ import {
     Box,
     HStack,
     IconButton,
+    Stack,
     Text,
     Textarea,
     Tooltip,
@@ -124,7 +125,7 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
           </Box>
 
           {/* 하단 정보 바 */}
-          <HStack 
+          <Stack 
             justify="space-between" 
             align={{ base: 'stretch', sm: 'center' }}
             direction={{ base: 'column', sm: 'row' }}
@@ -142,7 +143,7 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
                 {canSubmit ? '전송 가능' : `${MIN_LENGTH}자 이상 입력 시 전송 가능`}
               </Text>
             </HStack>
-          </HStack>
+          </Stack>
         </VStack>
       </Box>
     </VStack>

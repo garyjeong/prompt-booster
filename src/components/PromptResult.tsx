@@ -1,21 +1,21 @@
-import React, { memo, useMemo } from 'react';
-import { 
-  Box, 
-  Text, 
-  VStack, 
-  HStack,
-  useColorModeValue,
-  Alert,
-  AlertIcon,
-  AlertDescription,
-  Avatar,
-  Flex
+import type { TargetModel } from '@/types/api';
+import type { PromptComparisonAnalysis } from '@/types/scoring';
+import {
+    Alert,
+    AlertDescription,
+    AlertIcon,
+    Avatar,
+    Box,
+    Flex,
+    HStack,
+    Text,
+    useColorModeValue,
+    VStack
 } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
 import dynamic from 'next/dynamic';
+import { memo, useMemo } from 'react';
 import CopyButton from './CopyButton';
-import type { PromptComparisonAnalysis } from '@/types/scoring';
-import type { TargetModel } from '@/types/api';
 
 // ScoringDashboard 지연 로딩 (점수화 결과가 있을 때만 로드)
 const ScoringDashboard = dynamic(() => import('./ScoringDashboard'), {
@@ -126,7 +126,7 @@ const PromptResult = memo(function PromptResult({
   }
 
   return (
-    <VStack spacing={6} align="stretch" py={4}>
+    <VStack spacing={6} align="stretch" py={4} h="full">
       {/* Error Message */}
       {error && (
         <Alert 
@@ -144,7 +144,7 @@ const PromptResult = memo(function PromptResult({
       )}
 
       {/* 대화 스타일 메시지들 */}
-      <VStack spacing={6} align="stretch">
+      <VStack spacing={6} align="stretch" overflow="auto" flex="1" minH={0}>
         {/* 사용자 메시지 (원본 프롬프트) */}
         {shouldShowOriginal && (
           <Flex justify="flex-end" w="full">
@@ -246,6 +246,22 @@ const PromptResult = memo(function PromptResult({
                   </VStack>
                 ) : (
                   <VStack spacing={3} align="flex-start">
+                    {shouldShowImproved && (
+                      <Box position="absolute" top={2} right={2}>
+                        <CopyButton
+                          text={improvedPrompt!}
+                          size="sm"
+                          variant="ghost"
+                          borderRadius="full"
+                          p={2}
+                          aria-label="개선된 프롬프트 복사"
+                          successTitle="복사 완료!"
+                          successDescription="개선된 프롬프트가 클립보드에 복사되었습니다."
+                          tooltip="복사"
+                          copiedTooltip="복사됨!"
+                        />
+                      </Box>
+                    )}
                     <Text 
                       fontSize="sm" 
                       lineHeight="1.6"
@@ -254,27 +270,6 @@ const PromptResult = memo(function PromptResult({
                     >
                       {improvedPrompt || '프롬프트를 개선하는 중입니다...'}
                     </Text>
-                    
-                    {shouldShowImproved && (
-                      <CopyButton
-                        text={improvedPrompt!}
-                        size="xs"
-                        variant="ghost"
-                        colorScheme="gray"
-                        fontSize="xs"
-                        h="auto"
-                        py={1}
-                        px={2}
-                        borderRadius="md"
-                        successTitle="복사 완료!"
-                        successDescription="개선된 프롬프트가 클립보드에 복사되었습니다."
-                        copiedText="복사됨!"
-                        tooltip="클립보드에 복사"
-                        copiedTooltip="복사 완료!"
-                      >
-                        📋 복사
-                      </CopyButton>
-                    )}
                   </VStack>
                 )}
               </Box>

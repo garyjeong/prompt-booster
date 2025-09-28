@@ -6,7 +6,7 @@ import ModelInfo from '@/components/ModelInfo';
 import PromptInput from '@/components/PromptInput';
 import PromptResult from '@/components/PromptResult';
 import { TimeIcon } from '@chakra-ui/icons';
-import { Button, HStack, Select, Stack, Text, useColorModeValue, useDisclosure, VStack } from '@chakra-ui/react';
+import { Box, Button, HStack, Select, Stack, Text, useColorModeValue, useDisclosure, VStack } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 
 import HistoryModal from '@/components/HistoryModal';
@@ -152,7 +152,7 @@ function PromptBoosterApp() {
 
   return (
     <Layout>
-      <VStack spacing={0} align="stretch" w="full">
+      <VStack spacing={0} align="stretch" w="full" h="full" overflow="hidden">
         {/* 상단 컨트롤 바 - 미니멀한 디자인 */}
         <Stack 
           direction={{ base: 'column', md: 'row' }}
@@ -204,7 +204,7 @@ function PromptBoosterApp() {
         <HistoryModal isOpen={isHistoryOpen} onClose={closeHistory} />
 
         {/* 대화형 메인 영역 */}
-        <VStack spacing={6} align="stretch" flex="1">
+        <VStack spacing={6} align="stretch" flex="1" overflow="hidden">
           {/* 입력 영역을 상단에 배치 */}
           <PromptInput 
             onSubmit={handlePromptSubmit}
@@ -212,7 +212,8 @@ function PromptBoosterApp() {
           />
 
           {/* 개선 결과를 입력 아래로 이동 */}
-          <PromptResult
+          <Box flex="1" minH={0} overflow="auto">
+            <PromptResult
             originalPrompt={current.originalPrompt}
             improvedPrompt={current.improvedPrompt}
             isLoading={current.isLoading}
@@ -222,7 +223,8 @@ function PromptBoosterApp() {
             targetModel={selectedTargetModel}
             processingTime={processingTime}
             isDemoMode={isDemoMode}
-          />
+            />
+          </Box>
         </VStack>
       </VStack>
     </Layout>

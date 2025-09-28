@@ -10,7 +10,7 @@ const Layout = memo(function Layout({ children }: LayoutProps) {
   const subtextColor = useColorModeValue('gray.500', 'gray.400');
 
   return (
-    <Flex direction="column" minHeight="100vh" bg="transparent">
+    <Flex direction="column" minHeight="100vh" height="100vh" bg="transparent" overflow="hidden">
       {/* Minimal Header */}
       <Box 
         as="header" 
@@ -39,8 +39,8 @@ const Layout = memo(function Layout({ children }: LayoutProps) {
       </Box>
 
       {/* Main Content - Centered Chat Layout */}
-      <Box as="main" flex="1" py={8}>
-        <Box maxW="4xl" mx="auto" px={6}>
+      <Box as="main" flex="1" py={8} overflow="hidden">
+        <Box maxW="4xl" mx="auto" px={6} h="full">
           {children}
         </Box>
       </Box>
