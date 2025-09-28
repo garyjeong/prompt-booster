@@ -1,5 +1,6 @@
 import { Box, Flex, Text, useColorModeValue, VStack } from '@chakra-ui/react';
 import { memo, ReactNode } from 'react';
+import Logo from './Logo';
 
 interface LayoutProps {
   children: ReactNode;
@@ -25,15 +26,7 @@ const Layout = memo(function Layout({ children }: LayoutProps) {
       >
         <Box maxW="4xl" mx="auto" px={6}>
           <VStack spacing={0} align="center">
-            <Text 
-              fontSize={{ base: "2xl", md: "3xl" }} 
-              fontWeight="extrabold"
-              bgGradient="linear(to-r, brand.500, brand.600)"
-              bgClip="text"
-              letterSpacing="-0.03em"
-            >
-              Prompt Booster
-            </Text>
+            <Logo size="lg" />
           </VStack>
         </Box>
       </Box>
