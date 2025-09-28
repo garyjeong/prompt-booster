@@ -64,7 +64,7 @@
 
    ```bash
    git clone <repository-url>
-   cd spark-prompt
+   cd prompt-booster
    ```
 
 2. **의존성 설치**
