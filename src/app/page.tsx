@@ -1,28 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { VStack, HStack, Stack, Button, Box, Text, useColorModeValue, Select } from '@chakra-ui/react';
-import { TimeIcon } from '@chakra-ui/icons';
-import dynamic from 'next/dynamic';
+import ColorModeToggle from '@/components/ColorModeToggle';
 import Layout from '@/components/Layout';
+import ModelInfo from '@/components/ModelInfo';
 import PromptInput from '@/components/PromptInput';
 import PromptResult from '@/components/PromptResult';
-import ColorModeToggle from '@/components/ColorModeToggle';
-import ModelInfo from '@/components/ModelInfo';
+import { TimeIcon } from '@chakra-ui/icons';
+import { Button, HStack, Select, Stack, Text, useColorModeValue, useDisclosure, VStack } from '@chakra-ui/react';
+import { useEffect, useState } from 'react';
 
-// ApiKeyInput 지연 로딩 (설정 버튼 클릭 시에만 로드)
-const ApiKeyInput = dynamic(() => import('@/components/ApiKeyInput'), {
-  loading: () => (
-    <Box p={4} textAlign="center">
-      <Text fontSize="sm" color="gray.500">API 키 설정을 불러오는 중...</Text>
-    </Box>
-  ),
-  ssr: false
-});
-import { ApiKeyProvider, useApiKeys } from '@/context/ApiKeyContext';
+import HistoryModal from '@/components/HistoryModal';
+import { ApiKeyProvider } from '@/context/ApiKeyContext';
 import { PromptProvider, useCurrentPrompt, usePromptHistory } from '@/context/PromptContext';
-import { withCache, generateCacheKey } from '@/lib/api-cache';
-import type { PromptImprovementRequest, APIResponse, PromptImprovementResponse, TargetModel } from '@/types/api';
+import { generateCacheKey, withCache } from '@/lib/api-cache';
+import type { APIResponse, PromptImprovementRequest, PromptImprovementResponse, TargetModel } from '@/types/api';
 import type { PromptComparisonAnalysis } from '@/types/scoring';
 
 /** 실제 API를 호출하는 프롬프트 개선 함수 (캐싱 적용) */
@@ -60,7 +51,6 @@ async function improvePrompt(request: PromptImprovementRequest): Promise<PromptI
 
 /** 메인 앱 컴포넌트 */
 function PromptBoosterApp() {
-  const { apiKeys } = useApiKeys();
   const { 
     current, 
     setOriginalPrompt, 
@@ -70,6 +60,7 @@ function PromptBoosterApp() {
     clearError 
   } = useCurrentPrompt();
   const { addToHistory } = usePromptHistory();
+  const { isOpen: isHistoryOpen, onOpen: openHistory, onClose: closeHistory } = useDisclosure();
 
   // 점수화 데이터 상태 관리
   const [scoringAnalysis, setScoringAnalysis] = useState<PromptComparisonAnalysis | undefined>(undefined);
@@ -116,10 +107,9 @@ function PromptBoosterApp() {
     setIsDemoMode(false);
 
     		try {
-			// API 요청 생성 (환경변수 API Key를 사용하거나, 사용자 API Key를 fallback으로 사용)
+			// API 요청 생성 (서버 환경변수의 키 사용; 사용자 키는 사용하지 않음)
 			const request: PromptImprovementRequest = {
 				prompt,
-				geminiKey: apiKeys.gemini,
 				targetModel: selectedTargetModel,
 			};
 
@@ -200,20 +190,28 @@ function PromptBoosterApp() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => window.open('/history', '_blank')}
+              onClick={openHistory}
               leftIcon={<TimeIcon />}
               borderRadius="xl"
             >
               히스토리
             </Button>
             <ColorModeToggle size="sm" variant="ghost" />
-            <ApiKeyInput />
           </HStack>
         </Stack>
 
+        {/* 히스토리 모달 */}
+        <HistoryModal isOpen={isHistoryOpen} onClose={closeHistory} />
+
         {/* 대화형 메인 영역 */}
         <VStack spacing={6} align="stretch" flex="1">
-          {/* 프롬프트 결과 - 대화처럼 표시 */}
+          {/* 입력 영역을 상단에 배치 */}
+          <PromptInput 
+            onSubmit={handlePromptSubmit}
+            isLoading={current.isLoading}
+          />
+
+          {/* 개선 결과를 입력 아래로 이동 */}
           <PromptResult
             originalPrompt={current.originalPrompt}
             improvedPrompt={current.improvedPrompt}
@@ -225,21 +223,6 @@ function PromptBoosterApp() {
             processingTime={processingTime}
             isDemoMode={isDemoMode}
           />
-          
-          {/* 하단 고정 입력 영역 */}
-          <Box 
-            position="sticky" 
-            bottom={0} 
-            bg={useColorModeValue('rgba(255, 255, 255, 0.9)', 'rgba(24, 24, 27, 0.9)')}
-            backdropFilter="blur(10px)"
-            pt={4}
-            mt="auto"
-          >
-            <PromptInput 
-              onSubmit={handlePromptSubmit}
-              isLoading={current.isLoading}
-            />
-          </Box>
         </VStack>
       </VStack>
     </Layout>

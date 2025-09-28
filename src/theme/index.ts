@@ -195,34 +195,34 @@ const fonts = {
 
 // 모던 전역 스타일
 const styles = {
-	global: (props: { colorMode: string }) => ({
-		body: {
-			bg: props.colorMode === "dark" ? "gray.900" : "white",
-			color: props.colorMode === "dark" ? "gray.100" : "gray.800",
-			lineHeight: "1.6",
-			fontFeatureSettings: '"cv02","cv03","cv04","cv11"',
-		},
-		"*::placeholder": {
-			color: props.colorMode === "dark" ? "gray.500" : "gray.400",
-		},
-		"*, *::before, &::after": {
-			borderColor: props.colorMode === "dark" ? "gray.600" : "gray.200",
-		},
-		// 스크롤바 스타일링
-		"::-webkit-scrollbar": {
-			width: "6px",
-		},
-		"::-webkit-scrollbar-track": {
-			bg: "transparent",
-		},
-		"::-webkit-scrollbar-thumb": {
-			bg: props.colorMode === "dark" ? "gray.600" : "gray.300",
-			borderRadius: "full",
-		},
-		"::-webkit-scrollbar-thumb:hover": {
-			bg: props.colorMode === "dark" ? "gray.500" : "gray.400",
-		},
-	}),
+    global: (props: { colorMode: string }) => ({
+        body: {
+            bg: props.colorMode === "dark" ? "gray.900" : "white",
+            color: props.colorMode === "dark" ? "gray.100" : "gray.800",
+            lineHeight: "1.6",
+            fontFeatureSettings: '"cv02","cv03","cv04","cv11"',
+        },
+        "*::placeholder": {
+            color: props.colorMode === "dark" ? "gray.500" : "gray.500",
+        },
+        "*, *::before, &::after": {
+            borderColor: props.colorMode === "dark" ? "gray.600" : "gray.300",
+        },
+        // 스크롤바 스타일링
+        "::-webkit-scrollbar": {
+            width: "6px",
+        },
+        "::-webkit-scrollbar-track": {
+            bg: "transparent",
+        },
+        "::-webkit-scrollbar-thumb": {
+            bg: props.colorMode === "dark" ? "gray.600" : "gray.400",
+            borderRadius: "full",
+        },
+        "::-webkit-scrollbar-thumb:hover": {
+            bg: props.colorMode === "dark" ? "gray.500" : "gray.500",
+        },
+    }),
 };
 
 // 반응형 브레이크포인트

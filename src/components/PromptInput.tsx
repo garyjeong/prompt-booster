@@ -1,20 +1,17 @@
-import React, { memo, useState, useMemo, useCallback } from 'react';
-import { 
-  Box, 
-  Textarea, 
-  VStack,
-  HStack,
-  Text,
-  Alert,
-  AlertIcon,
-  AlertDescription,
-  Progress,
-  useColorModeValue,
-  IconButton,
-  Tooltip
-} from '@chakra-ui/react';
-import { ArrowUpIcon } from '@chakra-ui/icons';
 import { useIsDemoMode } from '@/context/ApiKeyContext';
+import { ArrowUpIcon } from '@chakra-ui/icons';
+import {
+    Box,
+    HStack,
+    IconButton,
+    Progress,
+    Text,
+    Textarea,
+    Tooltip,
+    useColorModeValue,
+    VStack
+} from '@chakra-ui/react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 
 interface PromptInputProps {
   onSubmit?: (prompt: string) => void;
@@ -81,23 +78,7 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
 
   return (
     <VStack spacing={4} align="stretch">
-      {/* 데모 모드 알림 - 간소화 */}
-      {isDemoMode && (
-        <Alert 
-          status="info" 
-          borderRadius="xl"
-          bg={alertBg}
-          border="1px"
-          borderColor={alertBorderColor}
-        >
-          <AlertIcon />
-          <AlertDescription fontSize="sm">
-            <Text>
-              <strong>서버 API 모드</strong> • 개인 API 키를 설정하여 더 많은 기능을 사용해보세요
-            </Text>
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* 데모/서버 모드 안내 제거 */}
 
       {/* 모던 채팅 스타일 입력 영역 */}
       <Box
