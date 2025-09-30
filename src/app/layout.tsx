@@ -1,8 +1,8 @@
+import theme from "@/theme";
+import { ChakraProvider, ColorModeScript } from "@chakra-ui/react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ChakraProvider, ColorModeScript } from "@chakra-ui/react";
-import theme from "@/theme";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +15,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Prompt Booster",
-  description: "AI 코딩 도우미를 위한 프롬프트 개선 도구",
+  title: "Prompt Booster - AI 프롬프트 개선 도구",
+  description: "AI 코딩 도우미를 위한 프롬프트 개선 도구. Claude, ChatGPT 등 LLM의 효율을 높이는 프롬프트 최적화 서비스",
+  keywords: ["프롬프트", "AI", "ChatGPT", "Claude", "프롬프트 개선", "프롬프트 최적화"],
+  authors: [{ name: "Gary" }],
+  openGraph: {
+    title: "Prompt Booster - AI 프롬프트 개선 도구",
+    description: "AI 코딩 도우미를 위한 프롬프트 개선 도구",
+    url: "https://booster.garyzone.pro",
+    siteName: "Prompt Booster",
+    locale: "ko_KR",
+    type: "website",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
 };
 
 export default function RootLayout({
