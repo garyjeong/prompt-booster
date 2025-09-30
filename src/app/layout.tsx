@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   description: "AI 코딩 도우미를 위한 프롬프트 개선 도구. Claude, ChatGPT 등 LLM의 효율을 높이는 프롬프트 최적화 서비스",
   keywords: ["프롬프트", "AI", "ChatGPT", "Claude", "프롬프트 개선", "프롬프트 최적화"],
   authors: [{ name: "Gary" }],
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
   openGraph: {
     title: "Prompt Booster - AI 프롬프트 개선 도구",
     description: "AI 코딩 도우미를 위한 프롬프트 개선 도구",
