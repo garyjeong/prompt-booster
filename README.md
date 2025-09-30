@@ -1,6 +1,8 @@
 # 🚀 Prompt Booster
 
-**AI 코딩 도우미를 위한 지능형 프롬프트 개선 및 점수화 플랫폼**
+> 마지막 업데이트: 2025-09-30
+
+AI 코딩 도우미를 위한 지능형 프롬프트 개선 및 점수화 플랫폼
 
 ![Next.js](https://img.shields.io/badge/Next.js-15.5.2-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)
@@ -137,7 +139,7 @@ pnpm test:coverage
 
 ### 테스트 구조
 
-```
+```text
 tests/
 ├── lib/
 │   ├── scoring.test.ts        # 점수화 시스템 (15개 테스트)
@@ -152,7 +154,7 @@ tests/
 
 ### 📂 **신중하게 설계된 아키텍처**
 
-```
+```text
 src/
 ├── app/
 │   ├── api/improve/          # 프롬프트 개선 API 라우트
@@ -344,7 +346,7 @@ git push origin feature/amazing-feature
 
 - 🐛 **버그 리포트**: [GitHub Issues](https://github.com/your-repo/issues)
 - 💬 **질문 & 토론**: [GitHub Discussions](https://github.com/your-repo/discussions)
-- 📧 **직접 연락**: your-email@example.com
+- 📧 **직접 연락**: `your-email@example.com`
 
 ## 🗺️ **로드맵 2024-2025**
 
@@ -389,6 +391,6 @@ pnpm install && pnpm dev
 
 **🚀 Prompt Booster로 AI 프롬프트 품질을 혁신하세요!**
 
-_완벽한 점수화 시스템 + 다크모드 + 히스토리 + 극한 성능 최적화 = **완전체 달성!**_ ✨
+_완벽한 점수화 시스템 + 다크모드 + 히스토리 + 극한 성능 최적화 = 완전체 달성!_ ✨
 
 **📈 최신 성과**: 번들 크기 55% 감소, 점수화 UI 완성, React Hooks 에러 100% 해결
