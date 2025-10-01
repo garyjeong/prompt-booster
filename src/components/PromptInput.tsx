@@ -94,8 +94,8 @@ const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: P
               pr={16} // 전송 버튼 공간 확보
             />
             
-            {/* 통합된 전송 버튼 */}
-            <Box position="absolute" bottom={4} right={4}>
+            {/* 통합된 전송 버튼 - 포커스 중에도 항상 보이도록 상단 배치 */}
+            <Box position="absolute" bottom={4} right={4} zIndex={2}>
               <Tooltip 
                 label={canSubmit ? "프롬프트 개선하기" : `${MIN_LENGTH}자 이상 입력해주세요`}
                 hasArrow
