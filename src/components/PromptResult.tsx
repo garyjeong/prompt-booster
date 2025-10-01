@@ -14,7 +14,9 @@ import {
 } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
 import dynamic from 'next/dynamic';
+import type { ComponentProps } from 'react';
 import { memo, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
 import CopyButton from './CopyButton';
 
 // ScoringDashboard 지연 로딩 (점수화 결과가 있을 때만 로드)
@@ -66,6 +68,85 @@ const PromptResult = memo(function PromptResult({
   const errorBg = useColorModeValue('red.100', 'red.900');
   const errorBorderColor = useColorModeValue('red.200', 'red.700');
   const promptTextColor = useColorModeValue('gray.800', 'gray.200');
+  const inlineCodeBg = useColorModeValue('gray.200', 'gray.700');
+  const blockCodeBg = useColorModeValue('gray.100', 'gray.800');
+  const blockquoteBg = useColorModeValue('blue.50', 'blue.900');
+  const blockquoteBorder = useColorModeValue('blue.300', 'blue.500');
+  const linkColor = useColorModeValue('blue.600', 'blue.300');
+  const hrBorderColor = useColorModeValue('gray.200', 'gray.600');
+
+  const markdownComponents = useMemo(
+    () => ({
+      p: (props: ComponentProps<typeof Text>) => (
+        <Text as="p" mb={2} {...props} />
+      ),
+      ul: (props: ComponentProps<typeof Box>) => (
+        <Box as="ul" pl={4} mb={2} listStyleType="disc" {...props} />
+      ),
+      ol: (props: ComponentProps<typeof Box>) => (
+        <Box as="ol" pl={4} mb={2} listStyleType="decimal" {...props} />
+      ),
+      li: (props: ComponentProps<typeof Box>) => (
+        <Box as="li" mb={1} {...props} />
+      ),
+      strong: (props: ComponentProps<typeof Text>) => (
+        <Text as="strong" fontWeight="bold" display="inline" {...props} />
+      ),
+      em: (props: ComponentProps<typeof Text>) => (
+        <Text as="em" fontStyle="italic" display="inline" {...props} />
+      ),
+      a: (props: ComponentProps<typeof Text>) => (
+        <Text
+          as="a"
+          color={linkColor}
+          textDecoration="underline"
+          display="inline"
+          target="_blank"
+          rel="noreferrer"
+          {...props}
+        />
+      ),
+      code: ({ inline, ...props }: { inline?: boolean } & ComponentProps<typeof Box>) => (
+        <Box
+          as={inline ? 'code' : 'pre'}
+          bg={inline ? inlineCodeBg : blockCodeBg}
+          borderRadius="md"
+          px={inline ? 1 : 3}
+          py={inline ? 0 : 2}
+          fontFamily="mono"
+          fontSize="0.85em"
+          whiteSpace={inline ? 'pre-wrap' : 'pre'}
+          overflowX="auto"
+          mb={inline ? 0 : 3}
+          display={inline ? 'inline' : 'block'}
+          {...props}
+        />
+      ),
+      blockquote: (props: ComponentProps<typeof Box>) => (
+        <Box
+          as="blockquote"
+          borderLeftWidth="4px"
+          borderColor={blockquoteBorder}
+          pl={4}
+          py={1}
+          mb={3}
+          bg={blockquoteBg}
+          borderRadius="md"
+          {...props}
+        />
+      ),
+      h1: (props: ComponentProps<typeof Text>) => (
+        <Text as="h1" fontSize="lg" fontWeight="bold" mt={4} mb={2} {...props} />
+      ),
+      h2: (props: ComponentProps<typeof Text>) => (
+        <Text as="h2" fontSize="md" fontWeight="semibold" mt={3} mb={2} {...props} />
+      ),
+      hr: (props: ComponentProps<typeof Box>) => (
+        <Box as="hr" borderColor={hrBorderColor} my={4} {...props} />
+      ),
+    }),
+    [blockquoteBg, blockquoteBorder, inlineCodeBg, blockCodeBg, linkColor, hrBorderColor]
+  );
 
   // 메모이제이션을 통한 성능 최적화
   const hasContent = useMemo(() => 
@@ -144,7 +225,12 @@ const PromptResult = memo(function PromptResult({
       )}
 
       {/* 대화 스타일 메시지들 */}
-      <VStack spacing={6} align="stretch" overflow="auto" flex="1" minH={0}>
+      <VStack
+        spacing={6}
+        align="stretch"
+        flex="1"
+        minH={0}
+      >
         {/* 사용자 메시지 (원본 프롬프트) */}
         {shouldShowOriginal && (
           <Flex justify="flex-end" w="full">
@@ -162,6 +248,7 @@ const PromptResult = memo(function PromptResult({
                   borderBottomRightRadius="md"
                   shadow="sm"
                   maxW="full"
+                  overflowX="auto"
                 >
                   <Text fontSize="sm" lineHeight="1.6" wordBreak="break-word">
                     {originalPrompt}
@@ -262,14 +349,20 @@ const PromptResult = memo(function PromptResult({
                         />
                       </Box>
                     )}
-                    <Text 
-                      fontSize="sm" 
-                      lineHeight="1.6"
-                      wordBreak="break-word"
+                    <Box
+                      fontSize="sm"
+                      lineHeight="1.8"
                       color={promptTextColor}
+                      overflowX="auto"
                     >
-                      {improvedPrompt || '프롬프트를 개선하는 중입니다...'}
-                    </Text>
+                      {shouldShowImproved ? (
+                        <ReactMarkdown components={markdownComponents}>
+                          {improvedPrompt!}
+                        </ReactMarkdown>
+                      ) : (
+                        '프롬프트를 개선하는 중입니다...'
+                      )}
+                    </Box>
                   </VStack>
                 )}
               </Box>

@@ -71,6 +71,13 @@ function PromptBoosterApp() {
   // 대상 모델 선택 상태 관리
   const [selectedTargetModel, setSelectedTargetModel] = useState<TargetModel>('gpt-5');
 
+  const shouldEnableResultScroll = Boolean(
+    current.originalPrompt ||
+    current.improvedPrompt ||
+    current.error ||
+    current.isLoading
+  );
+
   // LocalStorage에서 마지막 선택 모델 복원
   useEffect(() => {
     try {
@@ -212,7 +219,12 @@ function PromptBoosterApp() {
           />
 
           {/* 개선 결과를 입력 아래로 이동 */}
-          <Box flex="1" minH={0} overflow="auto">
+          <Box
+            flex="1"
+            minH={0}
+            overflowY={shouldEnableResultScroll ? 'auto' : 'hidden'}
+            overflowX="hidden"
+          >
             <PromptResult
             originalPrompt={current.originalPrompt}
             improvedPrompt={current.improvedPrompt}
