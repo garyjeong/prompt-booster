@@ -5,13 +5,11 @@ import Layout from '@/components/Layout';
 import ModelInfo from '@/components/ModelInfo';
 import PromptInput from '@/components/PromptInput';
 import PromptResult from '@/components/PromptResult';
-import { TimeIcon } from '@chakra-ui/icons';
-import { Box, Button, HStack, Select, Stack, Text, useColorModeValue, useDisclosure, VStack } from '@chakra-ui/react';
+import { Box, Flex, HStack, Select, Stack, Text, useColorModeValue } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 
-import HistoryModal from '@/components/HistoryModal';
 import { ApiKeyProvider } from '@/context/ApiKeyContext';
-import { PromptProvider, useCurrentPrompt, usePromptHistory } from '@/context/PromptContext';
+import { PromptProvider, useCurrentPrompt } from '@/context/PromptContext';
 import { generateCacheKey, withCache } from '@/lib/api-cache';
 import type { APIResponse, PromptImprovementRequest, PromptImprovementResponse, TargetModel } from '@/types/api';
 import type { PromptComparisonAnalysis } from '@/types/scoring';
@@ -59,8 +57,6 @@ function PromptBoosterApp() {
     setError, 
     clearError 
   } = useCurrentPrompt();
-  const { addToHistory } = usePromptHistory();
-  const { isOpen: isHistoryOpen, onOpen: openHistory, onClose: closeHistory } = useDisclosure();
 
   // 점수화 데이터 상태 관리
   const [scoringAnalysis, setScoringAnalysis] = useState<PromptComparisonAnalysis | undefined>(undefined);
@@ -71,12 +67,10 @@ function PromptBoosterApp() {
   // 대상 모델 선택 상태 관리
   const [selectedTargetModel, setSelectedTargetModel] = useState<TargetModel>('gpt-5');
 
-  const shouldEnableResultScroll = Boolean(
-    current.originalPrompt ||
-    current.improvedPrompt ||
-    current.error ||
-    current.isLoading
-  );
+  const hasResult = Boolean(current.improvedPrompt || current.error || current.isLoading);
+
+  const controlPanelBg = useColorModeValue('white', 'gray.800');
+  const controlPanelBorder = useColorModeValue('gray.200', 'gray.700');
 
   // LocalStorage에서 마지막 선택 모델 복원
   useEffect(() => {
@@ -159,86 +153,65 @@ function PromptBoosterApp() {
 
   return (
     <Layout>
-      <VStack spacing={0} align="stretch" w="full" h="full" overflow="hidden">
-        {/* 상단 컨트롤 바 - 미니멀한 디자인 */}
-        <Stack 
-          direction={{ base: 'column', md: 'row' }}
-          justify={{ base: 'flex-start', md: 'space-between' }}
-          align={{ base: 'stretch', md: 'center' }}
-          w="full" 
-          mb={8}
-          px={4}
-          py={3}
-          bg={useColorModeValue('gray.50', 'gray.800')}
-          borderRadius="2xl"
-          shadow="sm"
-          spacing={{ base: 3, md: 4 }}
-        >
-          <HStack spacing={3} flexWrap="wrap">
-            <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('gray.600', 'gray.300')}>
-              대상 모델
-            </Text>
-            <Select
-              value={selectedTargetModel}
-              onChange={(e) => handleTargetModelChange(e.target.value as TargetModel)}
-              size="sm"
-              w={{ base: 'full', md: '180px' }}
-              borderRadius="lg"
-              bg={useColorModeValue('white', 'gray.700')}
-            >
-              <option value="gpt-5">GPT-5</option>
-              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-              <option value="claude-4-sonnet">Claude 4 Sonnet</option>
-              <option value="claude-4-opus">Claude 4 Opus</option>
-            </Select>
-            <ModelInfo targetModel={selectedTargetModel} />
-          </HStack>
-          <HStack spacing={2} justify={{ base: 'flex-start', md: 'flex-end' }}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={openHistory}
-              leftIcon={<TimeIcon />}
-              borderRadius="xl"
-            >
-              히스토리
-            </Button>
-            <ColorModeToggle size="sm" variant="ghost" />
-          </HStack>
-        </Stack>
-
-        {/* 히스토리 모달 */}
-        <HistoryModal isOpen={isHistoryOpen} onClose={closeHistory} />
-
-        {/* 대화형 메인 영역 */}
-        <VStack spacing={6} align="stretch" flex="1" overflow="hidden">
-          {/* 입력 영역을 상단에 배치 */}
-          <PromptInput 
-            onSubmit={handlePromptSubmit}
-            isLoading={current.isLoading}
-          />
-
-          {/* 개선 결과를 입력 아래로 이동 */}
+      <Flex direction={{ base: 'column', xl: 'row' }} gap={6} h="full">
+        <Box flex={{ base: '0 0 auto', xl: hasResult ? '0 0 45%' : '1' }}>
           <Box
-            flex="1"
-            minH={0}
-            overflowY={shouldEnableResultScroll ? 'auto' : 'hidden'}
-            overflowX="hidden"
+            bg={controlPanelBg}
+            borderRadius="2xl"
+            border="1px"
+            borderColor={controlPanelBorder}
+            p={{ base: 4, md: 6 }}
+            shadow="md"
           >
-            <PromptResult
-            originalPrompt={current.originalPrompt}
-            improvedPrompt={current.improvedPrompt}
-            isLoading={current.isLoading}
-            error={current.error}
-            scoringAnalysis={scoringAnalysis}
-            provider={provider}
-            targetModel={selectedTargetModel}
-            processingTime={processingTime}
-            isDemoMode={isDemoMode}
+            <Stack
+              direction={{ base: 'column', md: 'row' }}
+              spacing={4}
+              mb={4}
+              align={{ base: 'stretch', md: 'center' }}
+            >
+              <VStack align="stretch" spacing={2} flex={1}>
+                <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('gray.600', 'gray.300')}>
+                  대상 모델
+                </Text>
+                <HStack spacing={3} align="center">
+                  <Select
+                    value={selectedTargetModel}
+                    onChange={(e) => handleTargetModelChange(e.target.value as TargetModel)}
+                    size="sm"
+                    maxW="220px"
+                  >
+                    <option value="gpt-5">GPT-5</option>
+                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                    <option value="claude-4-sonnet">Claude 4 Sonnet</option>
+                    <option value="claude-4-opus">Claude 4 Opus</option>
+                  </Select>
+                  <ModelInfo targetModel={selectedTargetModel} />
+                </HStack>
+              </VStack>
+              <ColorModeToggle size="sm" variant="ghost" alignSelf={{ base: 'flex-start', md: 'center' }} />
+            </Stack>
+            <PromptInput 
+              onSubmit={handlePromptSubmit}
+              isLoading={current.isLoading}
             />
           </Box>
-        </VStack>
-      </VStack>
+        </Box>
+        {hasResult && (
+          <Box flex={{ base: '0 0 auto', xl: '1' }} minH={0} overflow="hidden">
+            <PromptResult
+              originalPrompt={current.originalPrompt}
+              improvedPrompt={current.improvedPrompt}
+              isLoading={current.isLoading}
+              error={current.error}
+              scoringAnalysis={scoringAnalysis}
+              provider={provider}
+              targetModel={selectedTargetModel}
+              processingTime={processingTime}
+              isDemoMode={isDemoMode}
+            />
+          </Box>
+        )}
+      </Flex>
     </Layout>
   );
 }

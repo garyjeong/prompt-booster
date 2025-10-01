@@ -4,13 +4,13 @@
  * - 프롬프트 상태 관리
  */
 
-import type { PromptStorageData, PromptState } from "@/types/prompt";
-import { DEFAULT_PROMPT_STATE, PROMPT_STORAGE_KEY } from "@/types/prompt";
-import { getCurrentTimestamp } from "@/lib/utils";
 import {
-	apiKeyStorageManager,
-	ApiKeyStorageManager,
+    apiKeyStorageManager,
+    ApiKeyStorageManager,
 } from "@/lib/storage/ApiKeyStorageManager";
+import { getCurrentTimestamp } from "@/lib/utils";
+import type { PromptState, PromptStorageData } from "@/types/prompt";
+import { PROMPT_STORAGE_KEY } from "@/types/prompt";
 
 // Re-export API Key 관련 타입과 함수들 (하위 호환성 유지)
 export type { ApiKeys, ApiProvider } from "@/lib/storage/ApiKeyStorageManager";
@@ -97,16 +97,15 @@ export function setPromptData(state: PromptState): void {
 		}
 
 		// 저장용 데이터 구조로 변환 (로딩 상태 등 제외)
-		const storageData: PromptStorageData = {
-			current: {
-				originalPrompt: state.current.originalPrompt,
-				improvedPrompt: state.current.improvedPrompt,
-				lastUpdated: getCurrentTimestamp(),
-			},
-			history: state.history,
-			autoSave: state.autoSave,
-			savedAt: getCurrentTimestamp(),
-		};
+	const storageData: PromptStorageData = {
+		current: {
+			originalPrompt: state.current.originalPrompt,
+			improvedPrompt: state.current.improvedPrompt,
+			lastUpdated: getCurrentTimestamp(),
+		},
+		autoSave: state.autoSave,
+		savedAt: getCurrentTimestamp(),
+	};
 
 		localStorage.setItem(PROMPT_STORAGE_KEY, JSON.stringify(storageData));
 	} catch (error) {
@@ -128,12 +127,6 @@ export function restorePromptState(data: PromptStorageData): PromptState {
 			isLoading: false, // 복원 시 로딩 상태는 항상 false
 			error: "", // 복원 시 에러는 초기화
 			lastUpdated: data.current.lastUpdated,
-		},
-		history: {
-			sessions: data.history?.sessions || [],
-			maxHistory:
-				data.history?.maxHistory || DEFAULT_PROMPT_STATE.history.maxHistory,
-			lastSessionId: data.history?.lastSessionId,
 		},
 		isLoading: false,
 		autoSave: data.autoSave !== undefined ? data.autoSave : true,

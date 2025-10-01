@@ -1,30 +1,23 @@
 "use client";
 
-import React, {
-	createContext,
-	useContext,
-	useState,
-	useEffect,
-	useCallback,
-	ReactNode,
-} from "react";
-import type {
-	PromptState,
-	PromptContextType,
-	PromptSession,
-} from "@/types/prompt";
 import {
-	DEFAULT_PROMPT_STATE,
-	generateSessionId,
-} from "@/types/prompt";
-import { getCurrentTimestamp } from "@/lib/utils";
-import {
-	getPromptData,
-	setPromptData,
-	restorePromptState,
-	clearPromptData,
-	hasPromptData,
+    clearPromptData,
+    getPromptData,
+    hasPromptData,
+    restorePromptState,
+    setPromptData,
 } from "@/lib/localstorage";
+import { getCurrentTimestamp } from "@/lib/utils";
+import type { PromptContextType, PromptState } from "@/types/prompt";
+import { DEFAULT_PROMPT_STATE } from "@/types/prompt";
+import {
+    createContext,
+    ReactNode,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from "react";
 
 /** PromptContext 생성 */
 const PromptContext = createContext<PromptContextType | undefined>(undefined);
@@ -170,84 +163,6 @@ export function PromptProvider({ children }: PromptProviderProps) {
 	}, [updateState]);
 
 	// 히스토리에 세션 추가
-	const addToHistory = useCallback(
-		(session: Omit<PromptSession, "id" | "createdAt">) => {
-			updateState((prev) => {
-				const newSession: PromptSession = {
-					...session,
-					id: generateSessionId(),
-					createdAt: getCurrentTimestamp(),
-				};
-
-				const updatedSessions = [newSession, ...prev.history.sessions];
-				
-				// 최대 히스토리 개수 유지
-				const trimmedSessions = updatedSessions.slice(0, prev.history.maxHistory);
-
-				return {
-					...prev,
-					history: {
-						...prev.history,
-						sessions: trimmedSessions,
-						lastSessionId: newSession.id,
-					},
-				};
-			});
-		},
-		[updateState]
-	);
-
-	// 히스토리 초기화
-	const clearHistory = useCallback(() => {
-		updateState((prev) => ({
-			...prev,
-			history: {
-				...prev.history,
-				sessions: [],
-				lastSessionId: undefined,
-			},
-		}));
-	}, [updateState]);
-
-	// 특정 세션을 현재 상태로 복원
-	const restoreSession = useCallback(
-		(sessionId: string) => {
-			const session = state.history.sessions.find((s) => s.id === sessionId);
-			if (!session) {
-				console.warn(`세션 ID ${sessionId}를 찾을 수 없습니다.`);
-				return;
-			}
-
-			updateState((prev) => ({
-				...prev,
-				current: {
-					originalPrompt: session.originalPrompt,
-					improvedPrompt: session.improvedPrompt,
-					isLoading: false,
-					error: "",
-					lastUpdated: getCurrentTimestamp(),
-				},
-			}));
-		},
-		[state.history.sessions, updateState]
-	);
-
-	// 세션 복사 상태 업데이트
-	const markSessionCopied = useCallback(
-		(sessionId: string) => {
-			updateState((prev) => ({
-				...prev,
-				history: {
-					...prev.history,
-					sessions: prev.history.sessions.map((session) =>
-						session.id === sessionId ? { ...session, copied: true } : session
-					),
-				},
-			}));
-		},
-		[updateState]
-	);
-
 	// 모든 데이터 초기화
 	const resetAll = useCallback(() => {
 		try {
@@ -269,10 +184,6 @@ export function PromptProvider({ children }: PromptProviderProps) {
 		setError,
 		clearError,
 		clearCurrent,
-		addToHistory,
-		clearHistory,
-		restoreSession,
-		markSessionCopied,
 		resetAll,
 	};
 
@@ -308,19 +219,6 @@ export function useCurrentPrompt() {
 }
 
 /** 히스토리 관련 기능만 사용하는 훅 */
-export function usePromptHistory() {
-	const { history, addToHistory, clearHistory, restoreSession, markSessionCopied } = 
-		usePromptState();
-	
-	return {
-		history,
-		addToHistory,
-		clearHistory,
-		restoreSession,
-		markSessionCopied,
-	};
-}
-
 /** 자동 저장 상태 확인 훅 */
 export function useAutoSave() {
 	const { autoSave } = usePromptState();
