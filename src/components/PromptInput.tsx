@@ -18,7 +18,7 @@ interface PromptInputProps {
 }
 
 const MAX_LENGTH = 1000;
-const MIN_LENGTH = 100;
+const MIN_LENGTH = 20;
 
 const PromptInput = memo(function PromptInput({ onSubmit, isLoading = false }: PromptInputProps) {
   const [prompt, setPrompt] = useState('');
