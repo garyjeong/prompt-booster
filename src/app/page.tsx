@@ -1,227 +1,561 @@
+/**
+ * 메인 챗봇 페이지
+ * 메신저 스타일 채팅 인터페이스
+ */
+
 'use client';
 
-import ColorModeToggle from '@/components/ColorModeToggle';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import {
+  Box,
+  VStack,
+  Spinner,
+  Flex,
+} from '@chakra-ui/react';
 import Layout from '@/components/Layout';
-import ModelInfo from '@/components/ModelInfo';
-import PromptInput from '@/components/PromptInput';
-import PromptResult from '@/components/PromptResult';
-import { Box, Flex, HStack, Select, Stack, Text, useColorModeValue } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
+import Logo from '@/components/Logo';
+import ChatContainer from '@/components/ChatContainer';
+import ChatInput from '@/components/ChatInput';
+import ProjectNameSuggestions from '@/components/ProjectNameSuggestions';
+import DocumentPreview from '@/components/DocumentPreview';
+import LoginChat from '@/components/LoginChat';
+import Sidebar from '@/components/Sidebar';
+import ChatHistoryList from '@/components/ChatHistoryList';
+import { signIn } from 'next-auth/react';
+import {
+  saveSessionToStorage,
+  loadSessionFromStorage,
+  clearSessionFromStorage,
+  type ChatSessionStorage,
+} from '@/lib/storage';
+import type { QuestionAnswer, ProjectNameSuggestion } from '@/types/chat';
+import type { DocumentGenerationResponse } from '@/types/chat';
 
-import { ApiKeyProvider } from '@/context/ApiKeyContext';
-import { PromptProvider, useCurrentPrompt } from '@/context/PromptContext';
-import { generateCacheKey, withCache } from '@/lib/api-cache';
-import type { APIResponse, PromptImprovementRequest, PromptImprovementResponse, TargetModel } from '@/types/api';
-import type { PromptComparisonAnalysis } from '@/types/scoring';
+const INITIAL_QUESTION = '무엇을 만들어보고 싶으신가요?';
 
-/** 실제 API를 호출하는 프롬프트 개선 함수 (캐싱 적용) */
-async function improvePrompt(request: PromptImprovementRequest): Promise<PromptImprovementResponse> {
-  // 캐시 키 생성
-  const cacheKey = generateCacheKey(request.prompt, `gemini:${request.targetModel || 'gpt-5'}`);
-  
-  // 캐시된 응답이 있으면 즉시 반환
-  return withCache(
-    cacheKey,
-    async () => {
-      const response = await fetch('/api/improve', {
+export default function Home() {
+  const { data: session, status } = useSession();
+  const [currentQuestion, setCurrentQuestion] = useState<string>(INITIAL_QUESTION);
+  const [questionAnswers, setQuestionAnswers] = useState<QuestionAnswer[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+  const [sessionId, setSessionId] = useState<string>('');
+  const [showProjectNameSuggestions, setShowProjectNameSuggestions] = useState(false);
+  const [projectNameSuggestions, setProjectNameSuggestions] = useState<ProjectNameSuggestion[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [projectDescription, setProjectDescription] = useState<string>('');
+  const [documentPreview, setDocumentPreview] = useState<DocumentGenerationResponse | null>(null);
+  const [isGeneratingDocument, setIsGeneratingDocument] = useState(false);
+  const [showLoginChat, setShowLoginChat] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // 기본적으로 새 채팅으로 시작
+  useEffect(() => {
+    const newSessionId = crypto.randomUUID();
+    setSessionId(newSessionId);
+    setQuestionAnswers([]);
+    setCurrentQuestion(INITIAL_QUESTION);
+    setIsComplete(false);
+    setProjectDescription('');
+    setDocumentPreview(null);
+    setShowProjectNameSuggestions(false);
+    clearSessionFromStorage();
+  }, []);
+
+  // 세션 저장
+  useEffect(() => {
+    if (sessionId && questionAnswers.length > 0) {
+      const session: ChatSessionStorage = {
+        sessionId,
+        questionAnswers,
+        currentQuestion,
+        isCompleted: isComplete,
+        projectDescription,
+        createdAt: questionAnswers.length === 1 
+          ? questionAnswers[0].createdAt || new Date()
+          : new Date(),
+        updatedAt: new Date(),
+        title: questionAnswers[0]?.answer?.substring(0, 50) || '새 채팅',
+      };
+      saveSessionToStorage(session);
+    }
+  }, [sessionId, questionAnswers, currentQuestion, isComplete, projectDescription]);
+
+  // 다음 질문 생성
+  const handleAnswerSubmit = async (answer: string) => {
+    if (isComplete) {
+      await handleDocumentGeneration();
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      if (questionAnswers.length === 0) {
+        setProjectDescription(answer);
+      }
+
+      const newQA: QuestionAnswer = {
+        id: crypto.randomUUID(),
+        question: currentQuestion,
+        answer,
+        order: questionAnswers.length + 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const updatedQAs = [...questionAnswers, newQA];
+      setQuestionAnswers(updatedQAs);
+
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(request),
+        body: JSON.stringify({
+          sessionId,
+          previousAnswers: updatedQAs,
+          currentAnswer: answer,
+        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error?.error || `HTTP ${response.status}: ${response.statusText}`);
+        throw new Error('다음 질문 생성에 실패했습니다.');
       }
 
-      const result: APIResponse<PromptImprovementResponse> = await response.json();
-      
+      const result = await response.json();
       if (!result.success) {
-        throw new Error(result.error.error);
+        throw new Error(result.error || '알 수 없는 오류가 발생했습니다.');
       }
 
-      return result.data;
-    }
-  );
-}
+      setCurrentQuestion(result.data.question);
+      setIsComplete(result.data.isComplete);
+      setSessionId(result.data.sessionId);
 
-/** 메인 앱 컴포넌트 */
-function PromptBoosterApp() {
-  const { 
-    current, 
-    setOriginalPrompt, 
-    setImprovedPrompt, 
-    setLoading, 
-    setError, 
-    clearError 
-  } = useCurrentPrompt();
-
-  // 점수화 데이터 상태 관리
-  const [scoringAnalysis, setScoringAnalysis] = useState<PromptComparisonAnalysis | undefined>(undefined);
-  const [provider, setProvider] = useState<string>('');
-  const [processingTime, setProcessingTime] = useState<number>(0);
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
-  
-  // 대상 모델 선택 상태 관리
-  const [selectedTargetModel, setSelectedTargetModel] = useState<TargetModel>('gpt-5');
-
-  const hasResult = Boolean(current.improvedPrompt || current.error || current.isLoading);
-
-  const controlPanelBg = useColorModeValue('white', 'gray.800');
-  const controlPanelBorder = useColorModeValue('gray.200', 'gray.700');
-
-  // LocalStorage에서 마지막 선택 모델 복원
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('prompt_booster_target_model');
-      if (saved && ['gpt-5', 'gemini-2.5-pro', 'claude-4-sonnet', 'claude-4-opus'].includes(saved)) {
-        setSelectedTargetModel(saved as TargetModel);
+      if (result.data.question.toLowerCase().includes('프로젝트 이름') || 
+          result.data.question.toLowerCase().includes('이름')) {
+        await loadProjectNameSuggestions();
       }
     } catch (error) {
-      console.warn('대상 모델 설정 로드 실패:', error);
-    }
-  }, []);
-
-  // 모델 변경 시 LocalStorage에 저장
-  const handleTargetModelChange = (model: TargetModel) => {
-    setSelectedTargetModel(model);
-    try {
-      localStorage.setItem('prompt_booster_target_model', model);
-    } catch (error) {
-      console.warn('대상 모델 설정 저장 실패:', error);
-    }
-  };
-
-  const handlePromptSubmit = async (prompt: string) => {
-    // 상태 초기화 및 설정
-    setOriginalPrompt(prompt);
-    setImprovedPrompt('');
-    clearError();
-    setLoading(true);
-    
-    // 점수화 데이터 초기화
-    setScoringAnalysis(undefined);
-    setProvider('');
-    setProcessingTime(0);
-    setIsDemoMode(false);
-
-    		try {
-			// API 요청 생성 (서버 환경변수의 키 사용; 사용자 키는 사용하지 않음)
-			const request: PromptImprovementRequest = {
-				prompt,
-				targetModel: selectedTargetModel,
-			};
-
-      const result = await improvePrompt(request);
-
-      // 개선된 프롬프트 설정
-      setImprovedPrompt(result.improvedPrompt);
-
-      // 점수화 데이터 설정
-      if (result.scoringAnalysis) {
-        setScoringAnalysis(result.scoringAnalysis);
-      }
-      setProvider(result.provider);
-      setProcessingTime(result.processingTime);
-      setIsDemoMode(result.isDemoMode || false);
-
-      // 히스토리에 세션 추가
-      addToHistory({
-        originalPrompt: prompt,
-        improvedPrompt: result.improvedPrompt,
-        provider: result.provider,
-        targetModel: result.targetModel,
-        processingTime: result.processingTime,
-        isDemoMode: result.isDemoMode,
-        scoringAnalysis: result.scoringAnalysis,
-      });
-      
-    } catch (error) {
-      console.error('프롬프트 개선 실패:', error);
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : '프롬프트 개선 중 알 수 없는 오류가 발생했습니다.';
-      
-      setError(errorMessage);
-      setImprovedPrompt(''); // 에러 시 개선된 프롬프트 초기화
+      console.error('답변 제출 에러:', error);
+      alert(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
+  // 프로젝트 이름 추천 로드
+  const loadProjectNameSuggestions = async () => {
+    setIsLoadingSuggestions(true);
+    setShowProjectNameSuggestions(true);
+
+    try {
+      const response = await fetch('/api/project-name', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectDescription,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('프로젝트 이름 추천에 실패했습니다.');
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || '알 수 없는 오류가 발생했습니다.');
+      }
+
+      setProjectNameSuggestions(result.data.suggestions);
+    } catch (error) {
+      console.error('프로젝트 이름 추천 에러:', error);
+      setShowProjectNameSuggestions(false);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
+
+  // 다음 추천 보기
+  const handleNextSuggestions = async () => {
+    await loadProjectNameSuggestions();
+  };
+
+  // 프로젝트 이름 선택
+  const handleProjectNameSelect = (name: string) => {
+    handleAnswerSubmit(name);
+    setShowProjectNameSuggestions(false);
+  };
+
+  // 문서 생성
+  const handleDocumentGeneration = async () => {
+    if (status !== 'authenticated') {
+      const shouldContinue = confirm(
+        '문서를 저장하려면 로그인이 필요합니다. 로그인 없이 계속하시겠습니까? (로컬에만 저장됩니다)'
+      );
+      if (!shouldContinue) {
+        return;
+      }
+    }
+
+    setIsGeneratingDocument(true);
+
+    try {
+      const response = await fetch('/api/document', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId,
+          questionAnswers,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('문서 생성에 실패했습니다.');
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || '알 수 없는 오류가 발생했습니다.');
+      }
+
+      setDocumentPreview(result.data);
+    } catch (error) {
+      console.error('문서 생성 에러:', error);
+      alert(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
+    } finally {
+      setIsGeneratingDocument(false);
+    }
+  };
+
+  // 새로 시작
+  const handleNewSession = () => {
+    clearSessionFromStorage();
+    setQuestionAnswers([]);
+    setCurrentQuestion(INITIAL_QUESTION);
+    setIsComplete(false);
+    setDocumentPreview(null);
+    setShowProjectNameSuggestions(false);
+    setShowLoginChat(false);
+    setShowHistory(false);
+    setSessionId(crypto.randomUUID());
+  };
+
+  // 기록에서 세션 선택
+  const handleSelectSession = (session: ChatSessionStorage) => {
+    setSessionId(session.sessionId);
+    setQuestionAnswers(session.questionAnswers);
+    setCurrentQuestion(session.currentQuestion || INITIAL_QUESTION);
+    setIsComplete(session.isCompleted);
+    setProjectDescription(session.projectDescription || '');
+    setDocumentPreview(null);
+    setShowProjectNameSuggestions(false);
+    setShowHistory(false);
+    
+    // 현재 세션으로 저장
+    saveSessionToStorage({
+      ...session,
+      updatedAt: new Date(),
+    });
+  };
+
+  // 로그인 채팅 완료 처리
+  const handleLoginComplete = async (
+    email: string, 
+    password?: string, 
+    provider?: 'google' | 'email'
+  ) => {
+    if (provider === 'google') {
+      // Google OAuth 로그인
+      await signIn('google', { callbackUrl: '/' });
+    } else if (provider === 'email' && password) {
+      // 이메일/비밀번호 로그인 (Credentials Provider 필요)
+      // 현재는 Google OAuth만 지원하므로 OAuth로 리다이렉트
+      await signIn('google', { callbackUrl: '/' });
+    }
+    setShowLoginChat(false);
+  };
+
+  if (status === 'loading') {
+    return (
+      <Layout>
+        <Box display="flex" alignItems="center" justifyContent="center" minH="100vh">
+          <Spinner size="lg" />
+        </Box>
+      </Layout>
+    );
+  }
+
+  // 기록 보기 모드
+  if (showHistory) {
+    return (
+      <Layout>
+        <Box
+          w="full"
+          h="100vh"
+          bg="gray.100"
+          position="relative"
+        >
+          <Flex w="full" h="full" gap={4} p={4}>
+            <Sidebar
+              onNewChat={handleNewSession}
+              onLogin={() => setShowLoginChat(true)}
+              onViewHistory={() => setShowHistory(true)}
+              isAuthenticated={status === 'authenticated'}
+              userEmail={session?.user?.email}
+            />
+            <Box
+              flex={1}
+              h="calc(100vh - 32px)"
+              bg="white"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="gray.200"
+              overflow="hidden"
+              boxShadow="lg"
+              my={4}
+            >
+              <ChatHistoryList
+                onSelectSession={handleSelectSession}
+                onBack={() => setShowHistory(false)}
+              />
+            </Box>
+          </Flex>
+        </Box>
+      </Layout>
+    );
+  }
+
+  // 로그인 채팅 모드
+  if (showLoginChat) {
+    return (
+      <Layout>
+        <Box
+          w="full"
+          h="100vh"
+          bg="gray.100"
+          position="relative"
+        >
+          <Flex w="full" h="full" gap={4} p={4}>
+            <Sidebar
+              onNewChat={handleNewSession}
+              onLogin={() => setShowLoginChat(true)}
+              onViewHistory={() => setShowHistory(true)}
+              isAuthenticated={status === 'authenticated'}
+              userEmail={session?.user?.email}
+            />
+            <Box
+              flex={1}
+              h="calc(100vh - 32px)"
+              bg="white"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="gray.200"
+              overflow="hidden"
+              boxShadow="lg"
+              my={4}
+            >
+              <LoginChat
+                onComplete={handleLoginComplete}
+                onCancel={() => setShowLoginChat(false)}
+              />
+            </Box>
+          </Flex>
+        </Box>
+      </Layout>
+    );
+  }
+
+  // 문서 프리뷰 모드
+  if (documentPreview) {
+    return (
+      <Layout>
+        <Box
+          w="full"
+          h="100vh"
+          bg="gray.100"
+          position="relative"
+        >
+          <Flex w="full" h="full" gap={4} p={4}>
+            <Sidebar
+              onNewChat={handleNewSession}
+              onLogin={() => setShowLoginChat(true)}
+              onViewHistory={() => setShowHistory(true)}
+              isAuthenticated={status === 'authenticated'}
+              userEmail={session?.user?.email}
+            />
+            <VStack
+              align="stretch"
+              spacing={0}
+              flex={1}
+              h="calc(100vh - 32px)"
+              bg="white"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="gray.200"
+              overflow="hidden"
+              boxShadow="lg"
+              my={4}
+            >
+              <Box
+                as="header"
+                py={5}
+                px={6}
+                borderBottom="2px solid"
+                borderColor="gray.200"
+                bg="white"
+                flexShrink={0}
+                boxShadow="sm"
+              >
+                <Flex justify="flex-start" align="center">
+                  <Logo size="md" />
+                </Flex>
+              </Box>
+              
+              <Box flex={1} overflowY="auto" px={4} py={6} bg="white">
+                <DocumentPreview
+                  title={documentPreview.title}
+                  markdown={documentPreview.markdown}
+                  documentId={documentPreview.documentId}
+                  onDownload={() => {}}
+                />
+              </Box>
+            </VStack>
+          </Flex>
+        </Box>
+      </Layout>
+    );
+  }
+
+  // 프로젝트 이름 추천 모드
+  if (showProjectNameSuggestions) {
+    return (
+      <Layout>
+        <Box
+          w="full"
+          h="100vh"
+          bg="gray.100"
+          position="relative"
+        >
+          <Flex w="full" h="full" gap={4} p={4}>
+            <Sidebar
+              onNewChat={handleNewSession}
+              onLogin={() => setShowLoginChat(true)}
+              onViewHistory={() => setShowHistory(true)}
+              isAuthenticated={status === 'authenticated'}
+              userEmail={session?.user?.email}
+            />
+            <VStack
+              align="stretch"
+              spacing={0}
+              flex={1}
+              h="calc(100vh - 32px)"
+              bg="white"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="gray.200"
+              overflow="hidden"
+              boxShadow="lg"
+              my={4}
+            >
+              <Box
+                as="header"
+                py={5}
+                px={6}
+                borderBottom="2px solid"
+                borderColor="gray.200"
+                bg="white"
+                flexShrink={0}
+                boxShadow="sm"
+              >
+                <Flex justify="flex-start" align="center">
+                  <Logo size="md" />
+                </Flex>
+              </Box>
+              
+              <Box flex={1} overflowY="auto" px={4} py={6} bg="white">
+                <ProjectNameSuggestions
+                  suggestions={projectNameSuggestions}
+                  isLoading={isLoadingSuggestions}
+                  onSelect={handleProjectNameSelect}
+                  onNext={handleNextSuggestions}
+                  onCustomInput={handleProjectNameSelect}
+                />
+              </Box>
+            </VStack>
+          </Flex>
+        </Box>
+      </Layout>
+    );
+  }
+
+  // 채팅 모드
   return (
     <Layout>
-      <Flex direction={{ base: 'column', xl: 'row' }} gap={6} h="full">
-        <Box flex={{ base: '0 0 auto', xl: hasResult ? '0 0 45%' : '1' }}>
-          <Box
-            bg={controlPanelBg}
-            borderRadius="2xl"
-            border="1px"
-            borderColor={controlPanelBorder}
-            p={{ base: 4, md: 6 }}
-            shadow="md"
+      <Box
+        w="full"
+        h="100vh"
+        bg="gray.100"
+        position="relative"
+      >
+        <Flex w="full" h="full" gap={4} p={4}>
+          <Sidebar
+            onNewChat={handleNewSession}
+            onLogin={() => setShowLoginChat(true)}
+            onViewHistory={() => setShowHistory(true)}
+            isAuthenticated={status === 'authenticated'}
+            userEmail={session?.user?.email}
+          />
+          <Flex
+            direction="column"
+            h="calc(100vh - 32px)"
+            flex={1}
+            bg="white"
+            borderRadius="xl"
+            border="1px solid"
+            borderColor="gray.200"
+            overflow="hidden"
+            boxShadow="lg"
+            my={4}
           >
-            <Stack
-              direction={{ base: 'column', md: 'row' }}
-              spacing={4}
-              mb={4}
-              align={{ base: 'stretch', md: 'center' }}
-            >
-              <VStack align="stretch" spacing={2} flex={1}>
-                <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('gray.600', 'gray.300')}>
-                  대상 모델
-                </Text>
-                <HStack spacing={3} align="center">
-                  <Select
-                    value={selectedTargetModel}
-                    onChange={(e) => handleTargetModelChange(e.target.value as TargetModel)}
-                    size="sm"
-                    maxW="220px"
-                  >
-                    <option value="gpt-5">GPT-5</option>
-                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                    <option value="claude-4-sonnet">Claude 4 Sonnet</option>
-                    <option value="claude-4-opus">Claude 4 Opus</option>
-                  </Select>
-                  <ModelInfo targetModel={selectedTargetModel} />
-                </HStack>
-              </VStack>
-              <ColorModeToggle size="sm" variant="ghost" alignSelf={{ base: 'flex-start', md: 'center' }} />
-            </Stack>
-            <PromptInput 
-              onSubmit={handlePromptSubmit}
-              isLoading={current.isLoading}
-            />
+          {/* 헤더 */}
+          <Box
+            as="header"
+            py={5}
+            px={6}
+            borderBottom="2px solid"
+            borderColor="gray.200"
+            bg="white"
+            flexShrink={0}
+            boxShadow="sm"
+          >
+            <Flex justify="flex-start" align="center">
+              <Logo size="md" />
+            </Flex>
           </Box>
-        </Box>
-        {hasResult && (
-          <Box flex={{ base: '0 0 auto', xl: '1' }} minH={0} overflow="hidden">
-            <PromptResult
-              originalPrompt={current.originalPrompt}
-              improvedPrompt={current.improvedPrompt}
-              isLoading={current.isLoading}
-              error={current.error}
-              scoringAnalysis={scoringAnalysis}
-              provider={provider}
-              targetModel={selectedTargetModel}
-              processingTime={processingTime}
-              isDemoMode={isDemoMode}
-            />
-          </Box>
-        )}
-      </Flex>
-    </Layout>
-  );
-}
 
-export default function Home() {
-  return (
-    <ApiKeyProvider>
-      <PromptProvider>
-        <PromptBoosterApp />
-      </PromptProvider>
-    </ApiKeyProvider>
+          {/* 채팅 영역 */}
+          <ChatContainer
+            questionAnswers={questionAnswers}
+            currentQuestion={currentQuestion}
+            isLoading={isLoading || isGeneratingDocument}
+          />
+
+          {/* 입력창 */}
+          <ChatInput
+            onSubmit={handleAnswerSubmit}
+            isLoading={isLoading || isGeneratingDocument}
+            placeholder={isComplete ? '문서 생성을 시작하려면 Enter를 누르세요' : '답변을 입력하세요...'}
+            isComplete={isComplete}
+          />
+        </Flex>
+        </Flex>
+      </Box>
+    </Layout>
   );
 }

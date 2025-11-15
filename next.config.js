@@ -9,6 +9,20 @@ const nextConfig = {
     // Turbopack 전용 설정 (필요시 추가)
   },
 
+  // Fast Refresh / Hot Reload 최적화
+  reactStrictMode: true,
+  
+  // 개발 모드 최적화
+  ...(process.env.NODE_ENV === 'development' && {
+    // 개발 모드에서 빠른 리로드를 위한 설정
+    onDemandEntries: {
+      // 페이지를 메모리에 유지하는 시간 (초)
+      maxInactiveAge: 25 * 1000,
+      // 동시에 유지할 페이지 수
+      pagesBufferLength: 2,
+    },
+  }),
+
   // 이미지 최적화 (Turbopack 호환)
   images: {
     formats: ['image/webp', 'image/avif'],
