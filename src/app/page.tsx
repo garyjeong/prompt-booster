@@ -97,8 +97,12 @@ export default function Home() {
           },
           body: JSON.stringify(chatSession),
         }).catch((error) => {
+          // 네트워크 에러는 조용히 무시 (로컬 스토리지는 유지)
+          if (error instanceof TypeError && error.message === 'Failed to fetch') {
+            // 네트워크 연결 실패는 조용히 무시
+            return;
+          }
           console.error('DB 세션 저장 실패:', error);
-          // DB 저장 실패해도 로컬 스토리지는 유지
         });
       }
     }
@@ -130,17 +134,23 @@ export default function Home() {
       const updatedQAs = [...questionAnswers, newQA];
       setQuestionAnswers(updatedQAs);
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId,
-          previousAnswers: updatedQAs,
-          currentAnswer: answer,
-        }),
-      });
+      let response: Response;
+      try {
+        response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sessionId,
+            previousAnswers: updatedQAs,
+            currentAnswer: answer,
+          }),
+        });
+      } catch (fetchError) {
+        // 네트워크 에러 (서버 연결 실패, 타임아웃 등)
+        throw new Error('네트워크 연결에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.');
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -152,7 +162,10 @@ export default function Home() {
         throw new Error(errorMessage);
       }
 
-      const result = await response.json();
+      const result = await response.json().catch((parseError) => {
+        throw new Error('서버 응답을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      });
+
       if (!result.success) {
         // API 응답 형식: { success: false, error: { error: string, code: string } } 또는 { success: false, error: string }
         const errorMessage = 
@@ -199,15 +212,20 @@ export default function Home() {
     setShowProjectNameSuggestions(true);
 
     try {
-      const response = await fetch('/api/project-name', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          projectDescription,
-        }),
-      });
+      let response: Response;
+      try {
+        response = await fetch('/api/project-name', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            projectDescription,
+          }),
+        });
+      } catch (fetchError) {
+        throw new Error('네트워크 연결에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.');
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -218,7 +236,10 @@ export default function Home() {
         throw new Error(errorMessage);
       }
 
-      const result = await response.json();
+      const result = await response.json().catch((parseError) => {
+        throw new Error('서버 응답을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      });
+
       if (!result.success) {
         const errorMessage = 
           (typeof result?.error === 'object' && result?.error?.error)
@@ -270,16 +291,21 @@ export default function Home() {
     setIsGeneratingDocument(true);
 
     try {
-      const response = await fetch('/api/document', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId,
-          questionAnswers,
-        }),
-      });
+      let response: Response;
+      try {
+        response = await fetch('/api/document', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sessionId,
+            questionAnswers,
+          }),
+        });
+      } catch (fetchError) {
+        throw new Error('네트워크 연결에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.');
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -290,7 +316,10 @@ export default function Home() {
         throw new Error(errorMessage);
       }
 
-      const result = await response.json();
+      const result = await response.json().catch((parseError) => {
+        throw new Error('서버 응답을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      });
+
       if (!result.success) {
         const errorMessage = 
           (typeof result?.error === 'object' && result?.error?.error)

@@ -79,40 +79,44 @@ ${historyText}${currentAnswerText}
   } catch (error) {
     console.error('Gemini API 에러:', error);
     
-    // API 키 관련 에러 처리
-    if (error instanceof Error) {
-      const errorMessage = error.message;
-      const errorString = JSON.stringify(error);
-      
-      // API 키 만료 또는 유효하지 않음
-      if (
-        errorMessage.includes('API key expired') ||
-        errorMessage.includes('API key invalid') ||
-        errorMessage.includes('API_KEY_INVALID') ||
-        errorMessage.includes('API_KEY_EXPIRED') ||
-        errorString.includes('API_KEY_INVALID') ||
-        errorString.includes('API key expired')
-      ) {
-        throw new Error('GEMINI_API_KEY_EXPIRED: Gemini API 키가 만료되었거나 유효하지 않습니다. 새로운 API 키를 발급받아 설정해주세요.');
-      }
-      
-      // 일반적인 API 키 관련 에러
-      if (errorMessage.includes('API key') || errorMessage.includes('API_KEY')) {
+    // 에러 객체를 문자열로 변환 (깊은 구조까지 포함)
+    const errorString = JSON.stringify(error, null, 2);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // API 키 만료 또는 유효하지 않음 - 다양한 패턴 확인
+    const apiKeyExpiredPatterns = [
+      'API key expired',
+      'API key invalid',
+      'API_KEY_INVALID',
+      'API_KEY_EXPIRED',
+      'Please renew the API key',
+      'reason":"API_KEY_INVALID',
+    ];
+    
+    const hasApiKeyError = apiKeyExpiredPatterns.some(pattern => 
+      errorMessage.includes(pattern) || errorString.includes(pattern)
+    );
+    
+    if (hasApiKeyError) {
+      throw new Error('GEMINI_API_KEY_EXPIRED: Gemini API 키가 만료되었거나 유효하지 않습니다. 새로운 API 키를 발급받아 설정해주세요.');
+    }
+    
+    // 일반적인 API 키 관련 에러
+    if (errorMessage.includes('API key') || errorMessage.includes('API_KEY') || errorString.includes('API_KEY')) {
+      throw new Error('GEMINI_API_KEY_ERROR: Gemini API 키에 문제가 있습니다. 환경 변수 GEMINI_API_KEY를 확인해주세요.');
+    }
+    
+    // 400 Bad Request 에러
+    if (errorMessage.includes('400') || errorMessage.includes('Bad Request') || errorString.includes('400')) {
+      // 에러 상세 정보 확인
+      if (errorString.includes('API_KEY') || errorString.includes('API key')) {
         throw new Error('GEMINI_API_KEY_ERROR: Gemini API 키에 문제가 있습니다. 환경 변수 GEMINI_API_KEY를 확인해주세요.');
       }
-      
-      // 400 Bad Request 에러
-      if (errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
-        // 에러 상세 정보 확인
-        if (errorString.includes('API_KEY')) {
-          throw new Error('GEMINI_API_KEY_ERROR: Gemini API 키에 문제가 있습니다. 환경 변수 GEMINI_API_KEY를 확인해주세요.');
-        }
-        throw new Error('GEMINI_API_BAD_REQUEST: Gemini API 요청이 실패했습니다. API 키와 설정을 확인해주세요.');
-      }
+      throw new Error('GEMINI_API_BAD_REQUEST: Gemini API 요청이 실패했습니다. API 키와 설정을 확인해주세요.');
     }
     
     throw new Error(
-      `GEMINI_API_ERROR: 다음 질문 생성 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+      `GEMINI_API_ERROR: 다음 질문 생성 실패: ${errorMessage}`
     );
   }
 }
@@ -161,39 +165,44 @@ JSON만 출력하세요:`;
   } catch (error) {
     console.error('Gemini API 에러:', error);
     
-    // API 키 관련 에러 처리
-    if (error instanceof Error) {
-      const errorMessage = error.message;
-      const errorString = JSON.stringify(error);
-      
-      // API 키 만료 또는 유효하지 않음
-      if (
-        errorMessage.includes('API key expired') ||
-        errorMessage.includes('API key invalid') ||
-        errorMessage.includes('API_KEY_INVALID') ||
-        errorMessage.includes('API_KEY_EXPIRED') ||
-        errorString.includes('API_KEY_INVALID') ||
-        errorString.includes('API key expired')
-      ) {
-        throw new Error('GEMINI_API_KEY_EXPIRED: Gemini API 키가 만료되었거나 유효하지 않습니다. 새로운 API 키를 발급받아 설정해주세요.');
-      }
-      
-      // 일반적인 API 키 관련 에러
-      if (errorMessage.includes('API key') || errorMessage.includes('API_KEY')) {
+    // 에러 객체를 문자열로 변환 (깊은 구조까지 포함)
+    const errorString = JSON.stringify(error, null, 2);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // API 키 만료 또는 유효하지 않음 - 다양한 패턴 확인
+    const apiKeyExpiredPatterns = [
+      'API key expired',
+      'API key invalid',
+      'API_KEY_INVALID',
+      'API_KEY_EXPIRED',
+      'Please renew the API key',
+      'reason":"API_KEY_INVALID',
+    ];
+    
+    const hasApiKeyError = apiKeyExpiredPatterns.some(pattern => 
+      errorMessage.includes(pattern) || errorString.includes(pattern)
+    );
+    
+    if (hasApiKeyError) {
+      throw new Error('GEMINI_API_KEY_EXPIRED: Gemini API 키가 만료되었거나 유효하지 않습니다. 새로운 API 키를 발급받아 설정해주세요.');
+    }
+    
+    // 일반적인 API 키 관련 에러
+    if (errorMessage.includes('API key') || errorMessage.includes('API_KEY') || errorString.includes('API_KEY')) {
+      throw new Error('GEMINI_API_KEY_ERROR: Gemini API 키에 문제가 있습니다. 환경 변수 GEMINI_API_KEY를 확인해주세요.');
+    }
+    
+    // 400 Bad Request 에러
+    if (errorMessage.includes('400') || errorMessage.includes('Bad Request') || errorString.includes('400')) {
+      // 에러 상세 정보 확인
+      if (errorString.includes('API_KEY') || errorString.includes('API key')) {
         throw new Error('GEMINI_API_KEY_ERROR: Gemini API 키에 문제가 있습니다. 환경 변수 GEMINI_API_KEY를 확인해주세요.');
       }
-      
-      // 400 Bad Request 에러
-      if (errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
-        if (errorString.includes('API_KEY')) {
-          throw new Error('GEMINI_API_KEY_ERROR: Gemini API 키에 문제가 있습니다. 환경 변수 GEMINI_API_KEY를 확인해주세요.');
-        }
-        throw new Error('GEMINI_API_BAD_REQUEST: Gemini API 요청이 실패했습니다. API 키와 설정을 확인해주세요.');
-      }
+      throw new Error('GEMINI_API_BAD_REQUEST: Gemini API 요청이 실패했습니다. API 키와 설정을 확인해주세요.');
     }
     
     throw new Error(
-      `GEMINI_API_ERROR: 프로젝트 이름 추천 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+      `GEMINI_API_ERROR: 프로젝트 이름 추천 실패: ${errorMessage}`
     );
   }
 }
@@ -264,39 +273,44 @@ ${qaText}
   } catch (error) {
     console.error('Gemini API 에러:', error);
     
-    // API 키 관련 에러 처리
-    if (error instanceof Error) {
-      const errorMessage = error.message;
-      const errorString = JSON.stringify(error);
-      
-      // API 키 만료 또는 유효하지 않음
-      if (
-        errorMessage.includes('API key expired') ||
-        errorMessage.includes('API key invalid') ||
-        errorMessage.includes('API_KEY_INVALID') ||
-        errorMessage.includes('API_KEY_EXPIRED') ||
-        errorString.includes('API_KEY_INVALID') ||
-        errorString.includes('API key expired')
-      ) {
-        throw new Error('GEMINI_API_KEY_EXPIRED: Gemini API 키가 만료되었거나 유효하지 않습니다. 새로운 API 키를 발급받아 설정해주세요.');
-      }
-      
-      // 일반적인 API 키 관련 에러
-      if (errorMessage.includes('API key') || errorMessage.includes('API_KEY')) {
+    // 에러 객체를 문자열로 변환 (깊은 구조까지 포함)
+    const errorString = JSON.stringify(error, null, 2);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // API 키 만료 또는 유효하지 않음 - 다양한 패턴 확인
+    const apiKeyExpiredPatterns = [
+      'API key expired',
+      'API key invalid',
+      'API_KEY_INVALID',
+      'API_KEY_EXPIRED',
+      'Please renew the API key',
+      'reason":"API_KEY_INVALID',
+    ];
+    
+    const hasApiKeyError = apiKeyExpiredPatterns.some(pattern => 
+      errorMessage.includes(pattern) || errorString.includes(pattern)
+    );
+    
+    if (hasApiKeyError) {
+      throw new Error('GEMINI_API_KEY_EXPIRED: Gemini API 키가 만료되었거나 유효하지 않습니다. 새로운 API 키를 발급받아 설정해주세요.');
+    }
+    
+    // 일반적인 API 키 관련 에러
+    if (errorMessage.includes('API key') || errorMessage.includes('API_KEY') || errorString.includes('API_KEY')) {
+      throw new Error('GEMINI_API_KEY_ERROR: Gemini API 키에 문제가 있습니다. 환경 변수 GEMINI_API_KEY를 확인해주세요.');
+    }
+    
+    // 400 Bad Request 에러
+    if (errorMessage.includes('400') || errorMessage.includes('Bad Request') || errorString.includes('400')) {
+      // 에러 상세 정보 확인
+      if (errorString.includes('API_KEY') || errorString.includes('API key')) {
         throw new Error('GEMINI_API_KEY_ERROR: Gemini API 키에 문제가 있습니다. 환경 변수 GEMINI_API_KEY를 확인해주세요.');
       }
-      
-      // 400 Bad Request 에러
-      if (errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
-        if (errorString.includes('API_KEY')) {
-          throw new Error('GEMINI_API_KEY_ERROR: Gemini API 키에 문제가 있습니다. 환경 변수 GEMINI_API_KEY를 확인해주세요.');
-        }
-        throw new Error('GEMINI_API_BAD_REQUEST: Gemini API 요청이 실패했습니다. API 키와 설정을 확인해주세요.');
-      }
+      throw new Error('GEMINI_API_BAD_REQUEST: Gemini API 요청이 실패했습니다. API 키와 설정을 확인해주세요.');
     }
     
     throw new Error(
-      `GEMINI_API_ERROR: 문서 생성 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+      `GEMINI_API_ERROR: 문서 생성 실패: ${errorMessage}`
     );
   }
 }

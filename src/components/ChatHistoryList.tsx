@@ -49,15 +49,24 @@ const ChatHistoryList = memo(function ChatHistoryList({
       let dbSessions: ChatSessionDTO[] = [];
       if (status === 'authenticated') {
         try {
-          const response = await fetch('/api/chat-sessions');
+          let response: Response;
+          try {
+            response = await fetch('/api/chat-sessions');
+          } catch (fetchError) {
+            console.error('네트워크 연결 실패:', fetchError);
+            // 네트워크 에러는 무시하고 로컬 스토리지만 사용
+            return;
+          }
+          
           if (response.ok) {
-            const result = await response.json();
-            if (result.success) {
+            const result = await response.json().catch(() => null);
+            if (result?.success) {
               dbSessions = result.data;
             }
           }
         } catch (error) {
           console.error('DB 세션 불러오기 실패:', error);
+          // 에러 발생 시 로컬 스토리지만 사용
         }
       }
       
@@ -121,9 +130,17 @@ const ChatHistoryList = memo(function ChatHistoryList({
       // DB에서 삭제 (로그인한 경우)
       if (status === 'authenticated') {
         try {
-          await fetch(`/api/chat-sessions/${sessionId}`, {
-            method: 'DELETE',
-          });
+          let response: Response;
+          try {
+            response = await fetch(`/api/chat-sessions/${sessionId}`, {
+              method: 'DELETE',
+            });
+          } catch (fetchError) {
+            // 네트워크 에러는 조용히 무시 (로컬 스토리지에서 이미 삭제됨)
+            console.error('네트워크 연결 실패:', fetchError);
+            return;
+          }
+          // 응답은 확인하지만 에러가 있어도 무시 (로컬에서 이미 삭제됨)
         } catch (error) {
           console.error('DB 세션 삭제 실패:', error);
         }

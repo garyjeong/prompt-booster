@@ -86,18 +86,27 @@ const NicknameSetup = memo(function NicknameSetup({
       
       try {
         // 닉네임 저장 API 호출
-        const response = await fetch('/api/user/nickname', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ nickname: trimmed }),
-        });
+        let response: Response;
+        try {
+          response = await fetch('/api/user/nickname', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ nickname: trimmed }),
+          });
+        } catch (fetchError) {
+          throw new Error('네트워크 연결에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.');
+        }
         
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         
         if (!response.ok) {
-          throw new Error(data.error?.error || '닉네임 저장에 실패했습니다.');
+          const errorMessage = 
+            (typeof data?.error === 'object' && data?.error?.error)
+            || (typeof data?.error === 'string' && data?.error)
+            || '닉네임 저장에 실패했습니다.';
+          throw new Error(errorMessage);
         }
         
         // 성공
