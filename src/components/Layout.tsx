@@ -12,6 +12,7 @@ const Layout = memo(function Layout({ children }: LayoutProps) {
       minHeight="100vh" 
       bg="gray.50"
       p={4}
+      suppressHydrationWarning
     >
       <Box 
         as="main" 

@@ -23,6 +23,7 @@ import LoginChat from '@/components/LoginChat';
 import NicknameSetup from '@/components/NicknameSetup';
 import Sidebar from '@/components/Sidebar';
 import ChatHistoryList from '@/components/ChatHistoryList';
+import ErrorModal from '@/components/ErrorModal';
 import { signIn } from 'next-auth/react';
 import {
   saveSessionToStorage,
@@ -50,6 +51,10 @@ export default function Home() {
   const [showLoginChat, setShowLoginChat] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showNicknameSetup, setShowNicknameSetup] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ isOpen: boolean; error: string; retryAction?: () => void }>({
+    isOpen: false,
+    error: '',
+  });
 
   // 기본적으로 새 채팅으로 시작
   useEffect(() => {
@@ -169,19 +174,20 @@ export default function Home() {
       console.error('답변 제출 에러:', error);
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
       
-      // 재시도 옵션 제공
-      const shouldRetry = confirm(`${errorMessage}\n\n다시 시도하시겠습니까?`);
-      if (shouldRetry) {
-        // 마지막 답변 제거하고 재시도
-        setQuestionAnswers(questionAnswers);
-        setTimeout(() => {
-          handleAnswerSubmit(answer);
-        }, 100);
-        return;
-      }
-      
-      // 재시도하지 않으면 마지막 답변 제거
+      // 마지막 답변 제거
       setQuestionAnswers(questionAnswers);
+      
+      // 에러 모달 표시
+      setErrorModal({
+        isOpen: true,
+        error: errorMessage,
+        retryAction: () => {
+          setErrorModal({ isOpen: false, error: '' });
+          setTimeout(() => {
+            handleAnswerSubmit(answer);
+          }, 100);
+        },
+      });
     } finally {
       setIsLoading(false);
     }
@@ -224,7 +230,16 @@ export default function Home() {
       setProjectNameSuggestions(result.data.suggestions);
     } catch (error) {
       console.error('프로젝트 이름 추천 에러:', error);
+      const errorMessage = error instanceof Error ? error.message : '프로젝트 이름 추천에 실패했습니다.';
       setShowProjectNameSuggestions(false);
+      setErrorModal({
+        isOpen: true,
+        error: errorMessage,
+        retryAction: () => {
+          setErrorModal({ isOpen: false, error: '' });
+          loadProjectNameSuggestions();
+        },
+      });
     } finally {
       setIsLoadingSuggestions(false);
     }
@@ -287,7 +302,15 @@ export default function Home() {
       setDocumentPreview(result.data);
     } catch (error) {
       console.error('문서 생성 에러:', error);
-      alert(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
+      const errorMessage = error instanceof Error ? error.message : '문서 생성에 실패했습니다.';
+      setErrorModal({
+        isOpen: true,
+        error: errorMessage,
+        retryAction: () => {
+          setErrorModal({ isOpen: false, error: '' });
+          handleDocumentGeneration();
+        },
+      });
     } finally {
       setIsGeneratingDocument(false);
     }
@@ -614,8 +637,16 @@ export default function Home() {
 
   // 채팅 모드
   return (
-    <Layout>
-      <Box
+    <>
+      <ErrorModal
+        isOpen={errorModal.isOpen}
+        onClose={() => setErrorModal({ isOpen: false, error: '' })}
+        onRetry={errorModal.retryAction}
+        error={errorModal.error}
+        title="오류 발생"
+      />
+      <Layout>
+        <Box
         w="full"
         h="100vh"
         bg="gray.100"
@@ -675,5 +706,6 @@ export default function Home() {
         </Flex>
       </Box>
     </Layout>
+    </>
   );
 }

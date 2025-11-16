@@ -44,9 +44,17 @@ echo "권한 부여 중..."
 psql -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
 psql -d postgres -c "ALTER USER $DB_USER WITH SUPERUSER;"
 
-# 테이블 생성
-echo "테이블 생성 중..."
-psql -U $DB_USER -d $DB_NAME -f init-db.sql
+# Prisma 마이그레이션 실행
+echo "Prisma 마이그레이션 실행 중..."
+if [ -f "prisma/schema.prisma" ]; then
+    pnpm prisma migrate dev --name init || echo "⚠️  마이그레이션 실행 실패 (이미 실행되었을 수 있음)"
+else
+    echo "⚠️  prisma/schema.prisma 파일을 찾을 수 없습니다."
+    echo "   init-db.sql을 사용하여 수동으로 테이블을 생성하세요."
+    if [ -f "init-db.sql" ]; then
+        psql -U $DB_USER -d $DB_NAME -f init-db.sql
+    fi
+fi
 
 echo "✅ 데이터베이스 설정이 완료되었습니다!"
 echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME"
