@@ -7,19 +7,22 @@
 import {
   Box,
   VStack,
-  HStack,
   Button,
   Text,
   Divider,
+  HStack,
 } from '@chakra-ui/react';
 import { useState, useRef, useEffect } from 'react';
+import { signOut } from 'next-auth/react';
 
 interface SidebarProps {
   onNewChat: () => void;
   onLogin: () => void;
   onViewHistory: () => void;
+  onEditNickname?: () => void;
   isAuthenticated: boolean;
   userEmail?: string | null;
+  userNickname?: string | null;
 }
 
 const SIDEBAR_WIDTH_STORAGE_KEY = 'prompt-booster-sidebar-width';
@@ -31,8 +34,10 @@ export default function Sidebar({
   onNewChat,
   onLogin,
   onViewHistory,
+  onEditNickname,
   isAuthenticated,
   userEmail,
+  userNickname,
 }: SidebarProps) {
   const [width, setWidth] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -147,21 +152,57 @@ export default function Sidebar({
               로그인
             </Button>
           ) : (
-            <Box
-              px={3}
-              py={2}
-              bg="blue.50"
-              borderRadius="md"
-              border="1px solid"
-              borderColor="blue.200"
-            >
-              <Text fontSize="xs" color="blue.600" mb={1} fontWeight="600">
-                로그인됨
-              </Text>
-              <Text fontSize="xs" color="blue.800" fontWeight="500" noOfLines={1}>
-                {userEmail}
-              </Text>
-            </Box>
+            <VStack align="stretch" spacing={2}>
+              <Box
+                px={3}
+                py={2}
+                bg="blue.50"
+                borderRadius="md"
+                border="1px solid"
+                borderColor="blue.200"
+              >
+                <HStack justify="space-between" align="flex-start">
+                  <Box flex={1}>
+                    <Text fontSize="xs" color="blue.600" mb={1} fontWeight="600">
+                      로그인됨
+                    </Text>
+                    {userNickname ? (
+                      <Text fontSize="sm" color="blue.800" fontWeight="600" noOfLines={1}>
+                        {userNickname}
+                      </Text>
+                    ) : (
+                      <Text fontSize="xs" color="blue.700" fontWeight="500" noOfLines={1}>
+                        {userEmail}
+                      </Text>
+                    )}
+                  </Box>
+                </HStack>
+              </Box>
+              <HStack spacing={2}>
+                {onEditNickname && (
+                  <Button
+                    flex={1}
+                    size="xs"
+                    variant="outline"
+                    colorScheme="blue"
+                    onClick={onEditNickname}
+                    fontSize="xs"
+                  >
+                    닉네임 수정
+                  </Button>
+                )}
+                <Button
+                  flex={1}
+                  size="xs"
+                  variant="outline"
+                  colorScheme="red"
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  fontSize="xs"
+                >
+                  로그아웃
+                </Button>
+              </HStack>
+            </VStack>
           )}
         </Box>
 

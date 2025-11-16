@@ -8,10 +8,26 @@ import { authOptions } from '@/lib/auth';
 import { DocumentService } from '@/services/DocumentService';
 import { handleError } from '@/lib/middleware/error-handler';
 import { ValidationError } from '@/lib/errors';
+import { getEnvConfig } from '@/config/env';
 import type { DocumentGenerationRequest } from '@/types/chat';
 
 export async function POST(request: NextRequest) {
 	try {
+		// 환경 변수 검증
+		const envConfig = getEnvConfig();
+		if (!envConfig.geminiApiKey) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: {
+						error: 'AI 서비스에 연결할 수 없습니다. 관리자에게 문의하세요.',
+						code: 'MISSING_API_KEY',
+					},
+				},
+				{ status: 500 }
+			);
+		}
+
 		const session = await getServerSession(authOptions);
 		
 		// 개발 모드: 인증 없이도 문서 생성 가능 (임시 사용자로 저장)

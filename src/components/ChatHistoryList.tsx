@@ -12,11 +12,14 @@ import {
   Flex,
   HStack,
   IconButton,
+  Spinner,
 } from '@chakra-ui/react';
 import { DeleteIcon, ArrowBackIcon } from '@chakra-ui/icons';
 import { memo, useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import type { ChatSessionStorage } from '@/lib/storage';
-import { getSessionList, deleteSession, loadSessionById } from '@/lib/storage';
+import { getSessionList, deleteSession } from '@/lib/storage';
+import type { ChatSessionDTO } from '@/services/ChatSessionService';
 
 interface ChatHistoryListProps {
   onSelectSession: (session: ChatSessionStorage) => void;
@@ -27,21 +30,105 @@ const ChatHistoryList = memo(function ChatHistoryList({
   onSelectSession,
   onBack,
 }: ChatHistoryListProps) {
+  const { status } = useSession();
   const [sessions, setSessions] = useState<ChatSessionStorage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadSessions();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
-  const loadSessions = () => {
-    const sessionList = getSessionList();
-    setSessions(sessionList.sessions);
+  const loadSessions = async () => {
+    setIsLoading(true);
+    try {
+      // 로컬 스토리지에서 세션 불러오기
+      const localSessions = getSessionList().sessions;
+      
+      // DB에서 세션 불러오기 (로그인한 경우)
+      let dbSessions: ChatSessionDTO[] = [];
+      if (status === 'authenticated') {
+        try {
+          const response = await fetch('/api/chat-sessions');
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              dbSessions = result.data;
+            }
+          }
+        } catch (error) {
+          console.error('DB 세션 불러오기 실패:', error);
+        }
+      }
+      
+      // DB 세션을 로컬 스토리지 형식으로 변환
+      const dbSessionsFormatted: ChatSessionStorage[] = dbSessions.map((dbSession) => ({
+        sessionId: dbSession.sessionId,
+        questionAnswers: dbSession.questionAnswers.map((qa) => ({
+          id: qa.id,
+          question: qa.question,
+          answer: qa.answer,
+          order: qa.order,
+          createdAt: qa.createdAt instanceof Date ? qa.createdAt : new Date(qa.createdAt || Date.now()),
+          updatedAt: qa.updatedAt instanceof Date ? qa.updatedAt : new Date(qa.updatedAt || Date.now()),
+        })),
+        currentQuestion: dbSession.currentQuestion,
+        isCompleted: dbSession.isCompleted,
+        projectDescription: dbSession.projectDescription,
+        createdAt: dbSession.createdAt instanceof Date ? dbSession.createdAt : new Date(dbSession.createdAt),
+        updatedAt: dbSession.updatedAt instanceof Date ? dbSession.updatedAt : new Date(dbSession.updatedAt),
+        title: dbSession.title,
+      }));
+      
+      // 로컬 스토리지와 DB 세션 병합 (중복 제거)
+      const sessionMap = new Map<string, ChatSessionStorage>();
+      
+      // 로컬 스토리지 세션 추가
+      localSessions.forEach((session) => {
+        sessionMap.set(session.sessionId, session);
+      });
+      
+      // DB 세션 추가 (더 최신 데이터 우선)
+      dbSessionsFormatted.forEach((session) => {
+        const existing = sessionMap.get(session.sessionId);
+        if (!existing || new Date(session.updatedAt) > new Date(existing.updatedAt)) {
+          sessionMap.set(session.sessionId, session);
+        }
+      });
+      
+      // 최신순으로 정렬
+      const mergedSessions = Array.from(sessionMap.values()).sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+      
+      setSessions(mergedSessions);
+    } catch (error) {
+      console.error('세션 불러오기 실패:', error);
+      // 실패 시 로컬 스토리지만 사용
+      const localSessions = getSessionList().sessions;
+      setSessions(localSessions);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDelete = (sessionId: string, e: React.MouseEvent) => {
+  const handleDelete = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm('이 채팅 기록을 삭제하시겠습니까?')) {
+      // 로컬 스토리지에서 삭제
       deleteSession(sessionId);
+      
+      // DB에서 삭제 (로그인한 경우)
+      if (status === 'authenticated') {
+        try {
+          await fetch(`/api/chat-sessions/${sessionId}`, {
+            method: 'DELETE',
+          });
+        } catch (error) {
+          console.error('DB 세션 삭제 실패:', error);
+        }
+      }
+      
       loadSessions();
     }
   };
@@ -111,7 +198,14 @@ const ChatHistoryList = memo(function ChatHistoryList({
           },
         }}
       >
-        {sessions.length === 0 ? (
+        {isLoading ? (
+          <VStack spacing={4} py={12} align="center">
+            <Spinner size="lg" color="brand.500" />
+            <Text fontSize="sm" color="gray.500">
+              채팅 기록을 불러오는 중...
+            </Text>
+          </VStack>
+        ) : sessions.length === 0 ? (
           <VStack spacing={4} py={12} align="center">
             <Text fontSize="md" color="gray.500">
               저장된 채팅 기록이 없습니다.

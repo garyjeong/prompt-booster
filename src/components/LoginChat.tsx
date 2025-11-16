@@ -17,31 +17,23 @@ import ChatInput from './ChatInput';
 import type { QuestionAnswer } from '@/types/chat';
 
 interface LoginChatProps {
-  onComplete: (email: string, password?: string, provider?: 'google' | 'email') => void;
+  onComplete: () => void;
   onCancel: () => void;
 }
 
-type LoginStep = 'email' | 'password' | 'oauth' | 'complete';
+type LoginStep = 'oauth' | 'complete';
 
 const LoginChat = memo(function LoginChat({
   onComplete,
   onCancel,
 }: LoginChatProps) {
-  const [step, setStep] = useState<LoginStep>('email');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [step, setStep] = useState<LoginStep>('oauth');
   const [loginHistory, setLoginHistory] = useState<QuestionAnswer[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState('이메일 주소를 입력해주세요.');
+  const [currentQuestion, setCurrentQuestion] = useState('Google 계정으로 로그인하시겠습니까? (예/아니오)');
 
   const handleAnswerSubmit = async (answer: string) => {
-    if (step === 'email') {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(answer)) {
-        setCurrentQuestion('올바른 이메일 형식이 아닙니다. 다시 입력해주세요.');
-        return;
-      }
-      
-      setEmail(answer);
+    if (step === 'oauth') {
+      const answerLower = answer.toLowerCase().trim();
       const newQA: QuestionAnswer = {
         id: crypto.randomUUID(),
         question: currentQuestion,
@@ -51,46 +43,15 @@ const LoginChat = memo(function LoginChat({
         updatedAt: new Date(),
       };
       setLoginHistory([newQA]);
-      
-      // OAuth 사용 가능 여부 확인
-      setCurrentQuestion('로그인 방식을 선택해주세요. Google 계정으로 로그인하시겠습니까? (예/아니오)');
-      setStep('oauth');
-    } else if (step === 'oauth') {
-      const answerLower = answer.toLowerCase().trim();
-      const newQA: QuestionAnswer = {
-        id: crypto.randomUUID(),
-        question: currentQuestion,
-        answer,
-        order: loginHistory.length + 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setLoginHistory([...loginHistory, newQA]);
 
       if (answerLower === '예' || answerLower === 'yes' || answerLower === 'y' || answerLower === '구글') {
         // Google OAuth 로그인
-        onComplete(email, undefined, 'google');
+        onComplete();
         setStep('complete');
       } else {
-        // 이메일/비밀번호 로그인
-        setCurrentQuestion('비밀번호를 입력해주세요.');
-        setStep('password');
+        // 거부한 경우 다시 질문
+        setCurrentQuestion('Google 계정으로만 로그인할 수 있습니다. Google 계정으로 로그인하시겠습니까? (예/아니오)');
       }
-    } else if (step === 'password') {
-      setPassword(answer);
-      const newQA: QuestionAnswer = {
-        id: crypto.randomUUID(),
-        question: currentQuestion,
-        answer: '••••••••',
-        order: loginHistory.length + 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setLoginHistory([...loginHistory, newQA]);
-      
-      // 이메일/비밀번호 로그인
-      onComplete(email, answer, 'email');
-      setStep('complete');
     }
   };
 
@@ -185,13 +146,7 @@ const LoginChat = memo(function LoginChat({
       {step !== 'complete' && (
         <ChatInput
           onSubmit={handleAnswerSubmit}
-          placeholder={
-            step === 'email' 
-              ? '이메일 주소를 입력하세요...' 
-              : step === 'oauth'
-              ? '예 또는 아니오를 입력하세요...'
-              : '비밀번호를 입력하세요...'
-          }
+          placeholder="예 또는 아니오를 입력하세요..."
         />
       )}
     </Flex>

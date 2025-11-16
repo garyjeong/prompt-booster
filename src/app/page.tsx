@@ -20,12 +20,12 @@ import ChatInput from '@/components/ChatInput';
 import ProjectNameSuggestions from '@/components/ProjectNameSuggestions';
 import DocumentPreview from '@/components/DocumentPreview';
 import LoginChat from '@/components/LoginChat';
+import NicknameSetup from '@/components/NicknameSetup';
 import Sidebar from '@/components/Sidebar';
 import ChatHistoryList from '@/components/ChatHistoryList';
 import { signIn } from 'next-auth/react';
 import {
   saveSessionToStorage,
-  loadSessionFromStorage,
   clearSessionFromStorage,
   type ChatSessionStorage,
 } from '@/lib/storage';
@@ -49,6 +49,7 @@ export default function Home() {
   const [isGeneratingDocument, setIsGeneratingDocument] = useState(false);
   const [showLoginChat, setShowLoginChat] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showNicknameSetup, setShowNicknameSetup] = useState(false);
 
   // 기본적으로 새 채팅으로 시작
   useEffect(() => {
@@ -63,10 +64,10 @@ export default function Home() {
     clearSessionFromStorage();
   }, []);
 
-  // 세션 저장
+  // 세션 저장 (로컬 스토리지 + DB)
   useEffect(() => {
     if (sessionId && questionAnswers.length > 0) {
-      const session: ChatSessionStorage = {
+      const chatSession: ChatSessionStorage = {
         sessionId,
         questionAnswers,
         currentQuestion,
@@ -78,9 +79,25 @@ export default function Home() {
         updatedAt: new Date(),
         title: questionAnswers[0]?.answer?.substring(0, 50) || '새 채팅',
       };
-      saveSessionToStorage(session);
+      
+      // 로컬 스토리지 저장
+      saveSessionToStorage(chatSession);
+      
+      // DB 저장 (로그인한 경우에만)
+      if (status === 'authenticated' && session?.user?.id) {
+        fetch('/api/chat-sessions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(chatSession),
+        }).catch((error) => {
+          console.error('DB 세션 저장 실패:', error);
+          // DB 저장 실패해도 로컬 스토리지는 유지
+        });
+      }
     }
-  }, [sessionId, questionAnswers, currentQuestion, isComplete, projectDescription]);
+  }, [sessionId, questionAnswers, currentQuestion, isComplete, projectDescription, status, session]);
 
   // 다음 질문 생성
   const handleAnswerSubmit = async (answer: string) => {
@@ -121,12 +138,23 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('다음 질문 생성에 실패했습니다.');
+        const errorData = await response.json().catch(() => ({}));
+        // API 응답 형식: { success: false, error: { error: string, code: string } } 또는 { success: false, error: string }
+        const errorMessage = 
+          (typeof errorData?.error === 'object' && errorData?.error?.error) 
+          || (typeof errorData?.error === 'string' && errorData?.error)
+          || '다음 질문 생성에 실패했습니다.';
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
       if (!result.success) {
-        throw new Error(result.error || '알 수 없는 오류가 발생했습니다.');
+        // API 응답 형식: { success: false, error: { error: string, code: string } } 또는 { success: false, error: string }
+        const errorMessage = 
+          (typeof result?.error === 'object' && result?.error?.error)
+          || (typeof result?.error === 'string' && result?.error)
+          || '알 수 없는 오류가 발생했습니다.';
+        throw new Error(errorMessage);
       }
 
       setCurrentQuestion(result.data.question);
@@ -139,7 +167,21 @@ export default function Home() {
       }
     } catch (error) {
       console.error('답변 제출 에러:', error);
-      alert(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      
+      // 재시도 옵션 제공
+      const shouldRetry = confirm(`${errorMessage}\n\n다시 시도하시겠습니까?`);
+      if (shouldRetry) {
+        // 마지막 답변 제거하고 재시도
+        setQuestionAnswers(questionAnswers);
+        setTimeout(() => {
+          handleAnswerSubmit(answer);
+        }, 100);
+        return;
+      }
+      
+      // 재시도하지 않으면 마지막 답변 제거
+      setQuestionAnswers(questionAnswers);
     } finally {
       setIsLoading(false);
     }
@@ -162,12 +204,21 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('프로젝트 이름 추천에 실패했습니다.');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = 
+          (typeof errorData?.error === 'object' && errorData?.error?.error)
+          || (typeof errorData?.error === 'string' && errorData?.error)
+          || '프로젝트 이름 추천에 실패했습니다.';
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
       if (!result.success) {
-        throw new Error(result.error || '알 수 없는 오류가 발생했습니다.');
+        const errorMessage = 
+          (typeof result?.error === 'object' && result?.error?.error)
+          || (typeof result?.error === 'string' && result?.error)
+          || '알 수 없는 오류가 발생했습니다.';
+        throw new Error(errorMessage);
       }
 
       setProjectNameSuggestions(result.data.suggestions);
@@ -216,12 +267,21 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('문서 생성에 실패했습니다.');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = 
+          (typeof errorData?.error === 'object' && errorData?.error?.error)
+          || (typeof errorData?.error === 'string' && errorData?.error)
+          || '문서 생성에 실패했습니다.';
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
       if (!result.success) {
-        throw new Error(result.error || '알 수 없는 오류가 발생했습니다.');
+        const errorMessage = 
+          (typeof result?.error === 'object' && result?.error?.error)
+          || (typeof result?.error === 'string' && result?.error)
+          || '알 수 없는 오류가 발생했습니다.';
+        throw new Error(errorMessage);
       }
 
       setDocumentPreview(result.data);
@@ -265,27 +325,77 @@ export default function Home() {
   };
 
   // 로그인 채팅 완료 처리
-  const handleLoginComplete = async (
-    email: string, 
-    password?: string, 
-    provider?: 'google' | 'email'
-  ) => {
-    if (provider === 'google') {
-      // Google OAuth 로그인
-      await signIn('google', { callbackUrl: '/' });
-    } else if (provider === 'email' && password) {
-      // 이메일/비밀번호 로그인 (Credentials Provider 필요)
-      // 현재는 Google OAuth만 지원하므로 OAuth로 리다이렉트
-      await signIn('google', { callbackUrl: '/' });
-    }
+  const handleLoginComplete = async () => {
+    // Google OAuth 로그인
+    await signIn('google', { callbackUrl: '/' });
     setShowLoginChat(false);
   };
+
+  // 닉네임 설정 완료 처리
+  const handleNicknameComplete = () => {
+    setShowNicknameSetup(false);
+    // 세션 새로고침하여 닉네임 반영
+    window.location.reload();
+  };
+
+  // 로그인 후 닉네임 확인
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      // 닉네임이 없으면 설정 화면 표시
+      if (!session.user.name && !showNicknameSetup && !showLoginChat) {
+        setShowNicknameSetup(true);
+      }
+    }
+  }, [status, session, showNicknameSetup, showLoginChat]);
 
   if (status === 'loading') {
     return (
       <Layout>
         <Box display="flex" alignItems="center" justifyContent="center" minH="100vh">
           <Spinner size="lg" />
+        </Box>
+      </Layout>
+    );
+  }
+
+  // 닉네임 설정 모드
+  if (showNicknameSetup) {
+    return (
+      <Layout>
+        <Box
+          w="full"
+          h="100vh"
+          bg="gray.100"
+          position="relative"
+        >
+          <Flex w="full" h="full" gap={4} p={4}>
+            <Sidebar
+              onNewChat={handleNewSession}
+              onLogin={() => setShowLoginChat(true)}
+              onViewHistory={() => setShowHistory(true)}
+              onEditNickname={() => setShowNicknameSetup(true)}
+              isAuthenticated={status === 'authenticated'}
+              userEmail={session?.user?.email}
+              userNickname={session?.user?.name || null}
+            />
+            <Box
+              flex={1}
+              h="calc(100vh - 32px)"
+              bg="white"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="gray.200"
+              overflow="hidden"
+              boxShadow="lg"
+              my={4}
+            >
+              <NicknameSetup
+                onComplete={handleNicknameComplete}
+                onCancel={() => setShowNicknameSetup(false)}
+                currentNickname={session?.user?.name || null}
+              />
+            </Box>
+          </Flex>
         </Box>
       </Layout>
     );
@@ -306,8 +416,10 @@ export default function Home() {
               onNewChat={handleNewSession}
               onLogin={() => setShowLoginChat(true)}
               onViewHistory={() => setShowHistory(true)}
+              onEditNickname={() => setShowNicknameSetup(true)}
               isAuthenticated={status === 'authenticated'}
               userEmail={session?.user?.email}
+              userNickname={session?.user?.name || null}
             />
             <Box
               flex={1}
@@ -346,8 +458,10 @@ export default function Home() {
               onNewChat={handleNewSession}
               onLogin={() => setShowLoginChat(true)}
               onViewHistory={() => setShowHistory(true)}
+              onEditNickname={() => setShowNicknameSetup(true)}
               isAuthenticated={status === 'authenticated'}
               userEmail={session?.user?.email}
+              userNickname={session?.user?.name || null}
             />
             <Box
               flex={1}
@@ -386,8 +500,10 @@ export default function Home() {
               onNewChat={handleNewSession}
               onLogin={() => setShowLoginChat(true)}
               onViewHistory={() => setShowHistory(true)}
+              onEditNickname={() => setShowNicknameSetup(true)}
               isAuthenticated={status === 'authenticated'}
               userEmail={session?.user?.email}
+              userNickname={session?.user?.name || null}
             />
             <VStack
               align="stretch"
@@ -447,8 +563,10 @@ export default function Home() {
               onNewChat={handleNewSession}
               onLogin={() => setShowLoginChat(true)}
               onViewHistory={() => setShowHistory(true)}
+              onEditNickname={() => setShowNicknameSetup(true)}
               isAuthenticated={status === 'authenticated'}
               userEmail={session?.user?.email}
+              userNickname={session?.user?.name || null}
             />
             <VStack
               align="stretch"

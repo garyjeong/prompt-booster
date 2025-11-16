@@ -12,6 +12,9 @@ const nextConfig = {
   // Fast Refresh / Hot Reload 최적화
   reactStrictMode: true,
   
+  // Standalone 모드 (Docker 배포용)
+  output: 'standalone',
+  
   // 개발 모드 최적화
   ...(process.env.NODE_ENV === 'development' && {
     // 개발 모드에서 빠른 리로드를 위한 설정

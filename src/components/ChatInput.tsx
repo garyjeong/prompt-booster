@@ -12,7 +12,6 @@ import {
   IconButton,
   VStack,
   Text,
-  Button,
 } from '@chakra-ui/react';
 import { ArrowForwardIcon } from '@chakra-ui/icons';
 import { useState, memo, KeyboardEvent } from 'react';

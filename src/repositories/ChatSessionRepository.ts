@@ -1,0 +1,123 @@
+/**
+ * ChatSession Repository 구현
+ * Prisma를 사용한 채팅 세션 데이터 접근
+ */
+
+import { prisma } from '@/lib/prisma';
+import type {
+	IChatSessionRepository,
+	ChatSessionWithRelations,
+	CreateChatSessionData,
+	UpdateChatSessionData,
+} from './interfaces/IChatSessionRepository';
+
+export class ChatSessionRepository implements IChatSessionRepository {
+	async findById(id: string): Promise<ChatSessionWithRelations | null> {
+		return prisma.chatSession.findUnique({
+			where: { id },
+			include: {
+				questionAnswers: {
+					orderBy: { order: 'asc' },
+				},
+			},
+		});
+	}
+
+	async findBySessionId(
+		sessionId: string
+	): Promise<ChatSessionWithRelations | null> {
+		return prisma.chatSession.findUnique({
+			where: { sessionId },
+			include: {
+				questionAnswers: {
+					orderBy: { order: 'asc' },
+				},
+			},
+		});
+	}
+
+	async findByUserId(
+		userId: string,
+		limit?: number,
+		offset?: number
+	): Promise<ChatSessionWithRelations[]> {
+		return prisma.chatSession.findMany({
+			where: { userId },
+			include: {
+				questionAnswers: {
+					orderBy: { order: 'asc' },
+				},
+			},
+			orderBy: { createdAt: 'desc' },
+			take: limit,
+			skip: offset,
+		});
+	}
+
+	async create(
+		data: CreateChatSessionData
+	): Promise<ChatSessionWithRelations> {
+		return prisma.chatSession.create({
+			data: {
+				userId: data.userId,
+				sessionId: data.sessionId,
+				title: data.title,
+				projectDescription: data.projectDescription,
+				currentQuestion: data.currentQuestion,
+				isCompleted: data.isCompleted ?? false,
+				questionAnswers: data.questionAnswers
+					? {
+							create: data.questionAnswers,
+						}
+					: undefined,
+			},
+			include: {
+				questionAnswers: {
+					orderBy: { order: 'asc' },
+				},
+			},
+		});
+	}
+
+	async update(
+		id: string,
+		data: UpdateChatSessionData
+	): Promise<ChatSessionWithRelations> {
+		return prisma.chatSession.update({
+			where: { id },
+			data,
+			include: {
+				questionAnswers: {
+					orderBy: { order: 'asc' },
+				},
+			},
+		});
+	}
+
+	async delete(id: string): Promise<void> {
+		await prisma.chatSession.delete({
+			where: { id },
+		});
+	}
+
+	async deleteBySessionId(sessionId: string): Promise<void> {
+		await prisma.chatSession.delete({
+			where: { sessionId },
+		});
+	}
+
+	async exists(id: string): Promise<boolean> {
+		const count = await prisma.chatSession.count({
+			where: { id },
+		});
+		return count > 0;
+	}
+
+	async existsBySessionId(sessionId: string): Promise<boolean> {
+		const count = await prisma.chatSession.count({
+			where: { sessionId },
+		});
+		return count > 0;
+	}
+}
+
