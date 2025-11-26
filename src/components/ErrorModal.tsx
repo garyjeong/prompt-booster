@@ -38,23 +38,28 @@ const ErrorModal = memo(function ErrorModal({
   title = '오류 발생',
 }: ErrorModalProps) {
   // 에러 타입에 따른 메시지 및 안내 분기
-  const isApiKeyExpired = error.includes('GEMINI_API_KEY_EXPIRED') || error.includes('API key expired');
-  const isApiKeyError = error.includes('GEMINI_API_KEY_ERROR');
-  const isApiError = error.includes('GEMINI_API');
+  const isApiKeyExpired = error.includes('OPENAI_API_KEY_EXPIRED') || error.includes('API key expired') || error.includes('invalid_api_key');
+  const isApiKeyError = error.includes('OPENAI_API_KEY_ERROR');
+  const isApiError = error.includes('OPENAI_API');
+
+  const isInputDetailHint =
+    error.includes('조금 더 구체적으로') ||
+    error.includes('프로젝트 아이디어를 조금 더 구체적으로') ||
+    error.includes('프로젝트를 한두 문장으로');
 
   // 사용자 친화적인 메시지 추출
   const getErrorMessage = (): string => {
     if (isApiKeyExpired) {
-      return 'Gemini API 키가 만료되었습니다.';
+      return 'OpenAI API 키가 만료되었습니다.';
     }
     if (isApiKeyError) {
-      return 'Gemini API 키에 문제가 있습니다.';
+      return 'OpenAI API 키에 문제가 있습니다.';
     }
     if (isApiError) {
       return 'AI 서비스 연결에 실패했습니다.';
     }
     // 일반 에러 메시지에서 접두사 제거
-    return error.replace(/^(GEMINI_API_\w+:|API_\w+:)\s*/i, '').trim() || '알 수 없는 오류가 발생했습니다.';
+    return error.replace(/^(OPENAI_API_\w+:|API_\w+:)\s*/i, '').trim() || '알 수 없는 오류가 발생했습니다.';
   };
 
   const getErrorDescription = (): string => {
@@ -62,10 +67,13 @@ const ErrorModal = memo(function ErrorModal({
       return 'API 키를 갱신하거나 새로운 키를 발급받아 설정해주세요.';
     }
     if (isApiKeyError) {
-      return '환경 변수 GEMINI_API_KEY를 확인하고 올바른 키를 설정해주세요.';
+      return '환경 변수 OPENAI_API_KEY를 확인하고 올바른 키를 설정해주세요.';
     }
     if (isApiError) {
       return '잠시 후 다시 시도하거나 관리자에게 문의해주세요.';
+    }
+    if (isInputDetailHint) {
+      return '좀 더 구체적으로 작성해주세요.';
     }
     return '잠시 후 다시 시도해주세요.';
   };
@@ -90,7 +98,7 @@ const ErrorModal = memo(function ErrorModal({
         <ModalBody py={6}>
           <VStack align="stretch" spacing={4}>
             <Box>
-              <Text fontSize="md" fontWeight="500" color="gray.800" mb={2}>
+              <Text fontSize="md" fontWeight="500" color="gray.800" mb={2} whiteSpace="pre-line">
                 {getErrorMessage()}
               </Text>
               <Text fontSize="sm" color="gray.600">
@@ -110,16 +118,16 @@ const ErrorModal = memo(function ErrorModal({
                   API 키 설정 방법:
                 </Text>
                 <VStack align="stretch" spacing={2} fontSize="xs" color="blue.700">
-                  <Text>1. <Link href="https://aistudio.google.com/app/apikey" isExternal color="blue.600" textDecoration="underline">
-                    Google AI Studio
+                  <Text>1. <Link href="https://platform.openai.com/api-keys" isExternal color="blue.600" textDecoration="underline">
+                    OpenAI Platform
                   </Link>에서 API 키 발급</Text>
-                  <Text>2. 로컬 개발: .env 파일에 GEMINI_API_KEY 설정</Text>
-                  <Text>3. 배포 환경: Fly.io secrets에 GEMINI_API_KEY 설정</Text>
+                  <Text>2. 로컬 개발: .env 파일에 OPENAI_API_KEY 설정</Text>
+                  <Text>3. 배포 환경: Fly.io secrets에 OPENAI_API_KEY 설정</Text>
                 </VStack>
               </Box>
             )}
 
-            {isDevelopment() && (
+            {isDevelopment() && !isInputDetailHint && (
               <Box
                 bg="gray.50"
                 border="1px solid"

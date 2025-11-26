@@ -126,15 +126,24 @@ global.atob = global.atob || function (str) {
   return Buffer.from(str, 'base64').toString('binary')
 }
 
-// Mock window.localStorage
+// Mock window.localStorage with in-memory store
+const __localStore = {}
 const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-  hasOwnProperty: jest.fn(),
-  key: jest.fn(),
-  length: 0,
+  getItem: jest.fn((key) => (key in __localStore ? __localStore[key] : null)),
+  setItem: jest.fn((key, value) => {
+    __localStore[key] = String(value)
+  }),
+  removeItem: jest.fn((key) => {
+    delete __localStore[key]
+  }),
+  clear: jest.fn(() => {
+    Object.keys(__localStore).forEach((key) => delete __localStore[key])
+  }),
+  key: jest.fn((index) => Object.keys(__localStore)[index] ?? null),
+  get length() {
+    return Object.keys(__localStore).length
+  },
+  hasOwnProperty: Object.prototype.hasOwnProperty.bind(__localStore),
 }
 
 Object.defineProperty(window, 'localStorage', {

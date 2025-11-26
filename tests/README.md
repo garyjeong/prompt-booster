@@ -61,7 +61,7 @@ pnpm test tests/services/ChatService.test.ts
 
 ### Service 테스트
 - Repository를 모킹하여 비즈니스 로직만 테스트
-- 외부 API 호출(Gemini) 모킹
+- 외부 API 호출(OpenAI) 모킹
 - 에러 처리 및 예외 상황 테스트
 
 ### API 라우트 테스트
@@ -88,9 +88,9 @@ jest.mock('@/lib/prisma', () => ({
 }));
 ```
 
-### 외부 API (Gemini)
+### 외부 API (OpenAI)
 ```typescript
-jest.mock('@/lib/gemini-client', () => ({
+jest.mock('@/lib/openai-client', () => ({
   generateNextQuestion: jest.fn(),
   suggestProjectNames: jest.fn(),
 }));

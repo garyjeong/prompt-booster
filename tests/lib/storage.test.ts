@@ -10,6 +10,9 @@ import {
 	loadSessionById,
 	deleteSession,
 	updateAnswerInStorage,
+	restoreSession,
+	permanentlyDeleteSession,
+	clearTrashSessions,
 	type ChatSessionStorage,
 } from '@/lib/storage';
 import { STORAGE_KEY } from '@/config';
@@ -179,8 +182,8 @@ describe('Storage', () => {
 		});
 	});
 
-  describe('deleteSession', () => {
-    it('세션을 삭제해야 함', () => {
+  describe('deleteSession / restoreSession', () => {
+    it('세션을 휴지통으로 이동시켜야 함', () => {
       const session: ChatSessionStorage = {
         sessionId: 'test-session-1',
         questionAnswers: [],
@@ -193,7 +196,72 @@ describe('Storage', () => {
       deleteSession('test-session-1');
 
       const list = getSessionList();
+      const deleted = list.sessions.find((s) => s.sessionId === 'test-session-1');
+      expect(deleted).toBeDefined();
+      expect(deleted?.isDeleted).toBe(true);
+      expect(deleted?.deletedAt).toBeInstanceOf(Date);
+    });
+
+    it('휴지통 세션을 복구해야 함', () => {
+      const session: ChatSessionStorage = {
+        sessionId: 'test-session-1',
+        questionAnswers: [],
+        isCompleted: false,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+      };
+
+      saveSessionToStorage(session);
+      deleteSession('test-session-1');
+      restoreSession('test-session-1');
+
+      const list = getSessionList();
+      const restored = list.sessions.find((s) => s.sessionId === 'test-session-1');
+      expect(restored?.isDeleted).toBe(false);
+      expect(restored?.deletedAt).toBeUndefined();
+    });
+
+    it('세션을 완전히 삭제해야 함', () => {
+      const session: ChatSessionStorage = {
+        sessionId: 'test-session-1',
+        questionAnswers: [],
+        isCompleted: false,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+      };
+
+      saveSessionToStorage(session);
+      permanentlyDeleteSession('test-session-1');
+
+      const list = getSessionList();
       expect(list.sessions.find((s) => s.sessionId === 'test-session-1')).toBeUndefined();
+    });
+
+    it('휴지통을 모두 비워야 함', () => {
+      const session1: ChatSessionStorage = {
+        sessionId: 'trash-1',
+        questionAnswers: [],
+        isCompleted: false,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isDeleted: true,
+      };
+      const session2: ChatSessionStorage = {
+        sessionId: 'active-1',
+        questionAnswers: [],
+        isCompleted: false,
+        createdAt: new Date('2024-01-02'),
+        updatedAt: new Date('2024-01-02'),
+        isDeleted: false,
+      };
+
+      saveSessionToStorage(session1);
+      saveSessionToStorage(session2);
+      clearTrashSessions();
+
+      const list = getSessionList();
+      expect(list.sessions.find((s) => s.sessionId === 'trash-1')).toBeUndefined();
+      expect(list.sessions.find((s) => s.sessionId === 'active-1')).toBeDefined();
     });
   });
 

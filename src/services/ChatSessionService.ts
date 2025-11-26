@@ -16,6 +16,8 @@ export interface ChatSessionDTO {
 	projectDescription?: string;
 	currentQuestion?: string;
 	isCompleted: boolean;
+	isDeleted: boolean;
+	deletedAt?: Date | null;
 	questionAnswers: QuestionAnswer[];
 	createdAt: Date;
 	updatedAt: Date;
@@ -54,6 +56,8 @@ export class ChatSessionService {
 				projectDescription: session.projectDescription,
 				currentQuestion: session.currentQuestion,
 				isCompleted: session.isCompleted,
+				isDeleted: false,
+				deletedAt: null,
 			});
 
 			// 질문/답변 업데이트 (기존 것 삭제 후 재생성)
@@ -104,12 +108,37 @@ export class ChatSessionService {
 		return sessions.map((s) => this.toDTO(s));
 	}
 
+	async getDeletedSessionsByUserId(
+		userId: string,
+		limit?: number,
+		offset?: number
+	): Promise<ChatSessionDTO[]> {
+		const sessions = await this.repository.findDeletedByUserId(
+			userId,
+			limit,
+			offset
+		);
+		return sessions.map((s) => this.toDTO(s));
+	}
+
 	/**
 	 * 채팅 세션 삭제
 	 * @param sessionId 세션 ID
 	 */
 	async deleteSession(sessionId: string): Promise<void> {
-		await this.repository.deleteBySessionId(sessionId);
+		await this.repository.softDeleteBySessionId(sessionId);
+	}
+
+	async restoreSession(sessionId: string): Promise<void> {
+		await this.repository.restoreBySessionId(sessionId);
+	}
+
+	async deleteSessionPermanently(sessionId: string): Promise<void> {
+		await this.repository.hardDeleteBySessionId(sessionId);
+	}
+
+	async deleteAllDeletedSessions(userId: string): Promise<void> {
+		await this.repository.hardDeleteDeletedByUserId(userId);
 	}
 
 	/**
@@ -142,6 +171,8 @@ export class ChatSessionService {
 			projectDescription: session.projectDescription || undefined,
 			currentQuestion: session.currentQuestion || undefined,
 			isCompleted: session.isCompleted,
+			isDeleted: session.isDeleted,
+			deletedAt: session.deletedAt,
 			questionAnswers: session.questionAnswers.map((qa) => ({
 				id: qa.id,
 				question: qa.question,
@@ -168,6 +199,8 @@ export class ChatSessionService {
 			createdAt: dto.createdAt,
 			updatedAt: dto.updatedAt,
 			title: dto.title,
+			isDeleted: dto.isDeleted,
+			deletedAt: dto.deletedAt || undefined,
 		};
 	}
 }

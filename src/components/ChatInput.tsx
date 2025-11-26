@@ -58,7 +58,8 @@ const ChatInput = memo(function ChatInput({
       borderColor="gray.200"
       bg="white"
       px={4}
-      py={4}
+      pt={2}
+      pb={2}
     >
       <VStack align="stretch" spacing={2}>
         {isComplete && (

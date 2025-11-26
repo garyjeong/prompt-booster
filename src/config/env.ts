@@ -7,7 +7,7 @@
  */
 export interface EnvConfig {
 	nodeEnv: 'development' | 'production' | 'test';
-	geminiApiKey?: string;
+	openaiApiKey?: string;
 	googleClientId?: string;
 	googleClientSecret?: string;
 	nextAuthSecret?: string;
@@ -23,7 +23,7 @@ export function getEnvConfig(): EnvConfig {
 
 	return {
 		nodeEnv,
-		geminiApiKey: process.env.GEMINI_API_KEY,
+		openaiApiKey: process.env.OPENAI_API_KEY,
 		googleClientId: process.env.GOOGLE_CLIENT_ID,
 		googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
 		nextAuthSecret: process.env.NEXTAUTH_SECRET,
@@ -63,8 +63,8 @@ export function validateRequiredEnv(strict: boolean = false): EnvValidationResul
 		if (!config.nextAuthSecret) {
 			errors.push('NEXTAUTH_SECRET이 설정되지 않았습니다.');
 		}
-		if (!config.geminiApiKey) {
-			errors.push('GEMINI_API_KEY가 설정되지 않았습니다.');
+		if (!config.openaiApiKey) {
+			errors.push('OPENAI_API_KEY가 설정되지 않았습니다.');
 		}
 		if (!config.nextAuthUrl) {
 			warnings.push('NEXTAUTH_URL이 설정되지 않았습니다. NextAuth 콜백이 제대로 작동하지 않을 수 있습니다.');
@@ -74,8 +74,8 @@ export function validateRequiredEnv(strict: boolean = false): EnvValidationResul
 		if (!config.nextAuthSecret) {
 			warnings.push('NEXTAUTH_SECRET이 설정되지 않았습니다. (개발 환경에서는 선택사항)');
 		}
-		if (!config.geminiApiKey) {
-			warnings.push('GEMINI_API_KEY가 설정되지 않았습니다. 채팅 기능이 작동하지 않습니다.');
+		if (!config.openaiApiKey) {
+			warnings.push('OPENAI_API_KEY가 설정되지 않았습니다. 채팅 기능이 작동하지 않습니다.');
 		}
 	}
 

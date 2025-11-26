@@ -5,14 +5,14 @@
 import { DocumentService } from '@/services/DocumentService';
 import { DocumentRepository } from '@/repositories/DocumentRepository';
 import { UserRepository } from '@/repositories/UserRepository';
-import { generateDocument } from '@/lib/gemini-client';
+import { generateDocument } from '@/lib/openai-client';
 import { NotFoundError, UnauthorizedError } from '@/lib/errors';
 import type { QuestionAnswer } from '@/types/chat';
 
 // 모킹
 jest.mock('@/repositories/DocumentRepository');
 jest.mock('@/repositories/UserRepository');
-jest.mock('@/lib/gemini-client', () => ({
+jest.mock('@/lib/openai-client', () => ({
 	generateDocument: jest.fn(),
 }));
 

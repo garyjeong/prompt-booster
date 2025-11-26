@@ -26,7 +26,7 @@ describe('/api/project-name', () => {
 	describe('POST', () => {
 		it('환경 변수가 없으면 에러를 반환해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: undefined,
+				openaiApiKey: undefined,
 			});
 
 			const request = new Request('http://localhost/api/project-name', {
@@ -47,7 +47,7 @@ describe('/api/project-name', () => {
 
 		it('유효한 요청을 처리해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: 'test-api-key',
+				openaiApiKey: 'test-api-key',
 			});
 
 			mockChatService.suggestProjectNames.mockResolvedValue({
@@ -75,7 +75,7 @@ describe('/api/project-name', () => {
 
 		it('projectDescription가 없으면 ValidationError를 반환해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: 'test-api-key',
+				openaiApiKey: 'test-api-key',
 			});
 
 			const request = new Request('http://localhost/api/project-name', {
@@ -93,7 +93,7 @@ describe('/api/project-name', () => {
 
 		it('projectDescription가 문자열이 아니면 ValidationError를 반환해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: 'test-api-key',
+				openaiApiKey: 'test-api-key',
 			});
 
 			const request = new Request('http://localhost/api/project-name', {

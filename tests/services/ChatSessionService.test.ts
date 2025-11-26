@@ -15,10 +15,15 @@ describe('ChatSessionService', () => {
 			findById: jest.fn(),
 			findBySessionId: jest.fn(),
 			findByUserId: jest.fn(),
+			findDeletedByUserId: jest.fn(),
 			create: jest.fn(),
 			update: jest.fn(),
 			delete: jest.fn(),
 			deleteBySessionId: jest.fn(),
+			softDeleteBySessionId: jest.fn(),
+			restoreBySessionId: jest.fn(),
+			hardDeleteBySessionId: jest.fn(),
+			hardDeleteDeletedByUserId: jest.fn(),
 			exists: jest.fn(),
 			existsBySessionId: jest.fn(),
 		} as any;
@@ -41,6 +46,8 @@ describe('ChatSessionService', () => {
 					},
 				],
 				isCompleted: false,
+				isDeleted: false,
+				deletedAt: null,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				title: '테스트 세션',
@@ -97,6 +104,8 @@ describe('ChatSessionService', () => {
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				questionAnswers: [],
+				isDeleted: false,
+				deletedAt: null,
 			};
 
 			mockRepository.findBySessionId.mockResolvedValue(existing);
@@ -112,6 +121,8 @@ describe('ChatSessionService', () => {
 				projectDescription: undefined,
 				currentQuestion: undefined,
 				isCompleted: true,
+				isDeleted: false,
+				deletedAt: null,
 			});
 			expect(result.isCompleted).toBe(true);
 		});
@@ -130,6 +141,8 @@ describe('ChatSessionService', () => {
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				questionAnswers: [],
+				isDeleted: false,
+				deletedAt: null,
 			};
 
 			mockRepository.findBySessionId.mockResolvedValue(mockSession);
@@ -177,13 +190,65 @@ describe('ChatSessionService', () => {
 		});
 	});
 
+	describe('getDeletedSessionsByUserId', () => {
+		it('삭제된 세션 목록을 조회해야 함', async () => {
+			mockRepository.findDeletedByUserId.mockResolvedValue([]);
+
+			await service.getDeletedSessionsByUserId('user-1', 10, 0);
+
+			expect(mockRepository.findDeletedByUserId).toHaveBeenCalledWith(
+				'user-1',
+				10,
+				0
+			);
+		});
+	});
+
 	describe('deleteSession', () => {
 		it('세션을 삭제해야 함', async () => {
-			mockRepository.deleteBySessionId.mockResolvedValue(undefined);
+			mockRepository.softDeleteBySessionId.mockResolvedValue(undefined);
 
 			await service.deleteSession('test-session-1');
 
-			expect(mockRepository.deleteBySessionId).toHaveBeenCalledWith('test-session-1');
+			expect(mockRepository.softDeleteBySessionId).toHaveBeenCalledWith(
+				'test-session-1'
+			);
+		});
+	});
+
+	describe('restoreSession', () => {
+		it('세션을 복구해야 함', async () => {
+			mockRepository.restoreBySessionId.mockResolvedValue(undefined);
+
+			await service.restoreSession('test-session-1');
+
+			expect(mockRepository.restoreBySessionId).toHaveBeenCalledWith(
+				'test-session-1'
+			);
+		});
+	});
+
+	describe('deleteSessionPermanently', () => {
+		it('세션을 완전히 삭제해야 함', async () => {
+			mockRepository.hardDeleteBySessionId.mockResolvedValue(undefined);
+
+			await service.deleteSessionPermanently('test-session-1');
+
+			expect(mockRepository.hardDeleteBySessionId).toHaveBeenCalledWith(
+				'test-session-1'
+			);
+		});
+	});
+
+	describe('deleteAllDeletedSessions', () => {
+		it('삭제된 세션을 모두 삭제해야 함', async () => {
+			mockRepository.hardDeleteDeletedByUserId.mockResolvedValue(undefined);
+
+			await service.deleteAllDeletedSessions('user-1');
+
+			expect(
+				mockRepository.hardDeleteDeletedByUserId
+			).toHaveBeenCalledWith('user-1');
 		});
 	});
 
@@ -197,6 +262,8 @@ describe('ChatSessionService', () => {
 				createdAt: new Date('2024-01-01'),
 				updatedAt: new Date('2024-01-01'),
 				title: '테스트 세션',
+				isDeleted: false,
+				deletedAt: null,
 			};
 
 			const storage = service.toStorageFormat(dto);
@@ -227,6 +294,8 @@ describe('ChatSessionService', () => {
 				isCompleted: true,
 				createdAt: new Date('2024-01-01'),
 				updatedAt: new Date('2024-01-02'),
+				isDeleted: false,
+				deletedAt: null,
 			};
 
 			const storage = service.toStorageFormat(dto);

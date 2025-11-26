@@ -12,6 +12,7 @@ import {
   VStack,
   Spinner,
   Flex,
+  Code,
 } from '@chakra-ui/react';
 import Layout from '@/components/Layout';
 import Logo from '@/components/Logo';
@@ -23,6 +24,7 @@ import LoginChat from '@/components/LoginChat';
 import NicknameSetup from '@/components/NicknameSetup';
 import Sidebar from '@/components/Sidebar';
 import ChatHistoryList from '@/components/ChatHistoryList';
+import TrashBinList from '@/components/TrashBinList';
 import ErrorModal from '@/components/ErrorModal';
 import { signIn } from 'next-auth/react';
 import {
@@ -32,8 +34,58 @@ import {
 } from '@/lib/storage';
 import type { QuestionAnswer, ProjectNameSuggestion } from '@/types/chat';
 import type { DocumentGenerationResponse } from '@/types/chat';
+import { validateInitialAnswer } from '@/lib/answer-validation';
 
 const INITIAL_QUESTION = '무엇을 만들어보고 싶으신가요?';
+
+/**
+ * API 키 표시 컴포넌트 (개발 환경에서만)
+ */
+function ApiKeyDisplay() {
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // 개발 환경에서만 API 키 가져오기
+    if (process.env.NODE_ENV === 'development') {
+      fetch('/api/debug/api-key')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.apiKey) {
+            setApiKey(data.apiKey);
+          }
+        })
+        .catch(() => {
+          // 에러 발생 시 무시
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // 프로덕션 환경이거나 로딩 중이면 표시하지 않음
+  if (process.env.NODE_ENV !== 'development' || isLoading || !apiKey) {
+    return null;
+  }
+
+  return (
+    <Code
+      fontSize="xs"
+      colorScheme="gray"
+      px={2}
+      py={1}
+      borderRadius="md"
+      maxW="200px"
+      isTruncated
+      title={apiKey}
+    >
+      {apiKey.substring(0, 20)}...
+    </Code>
+  );
+}
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -50,7 +102,26 @@ export default function Home() {
   const [isGeneratingDocument, setIsGeneratingDocument] = useState(false);
   const [showLoginChat, setShowLoginChat] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
   const [showNicknameSetup, setShowNicknameSetup] = useState(false);
+  const handleOpenHistory = () => {
+    setShowHistory(true);
+    setShowTrash(false);
+    setShowLoginChat(false);
+  };
+
+  const handleOpenTrash = () => {
+    setShowTrash(true);
+    setShowHistory(false);
+    setShowLoginChat(false);
+  };
+
+  const handleOpenLogin = () => {
+    setShowLoginChat(true);
+    setShowHistory(false);
+    setShowTrash(false);
+  };
+
   const [errorModal, setErrorModal] = useState<{ isOpen: boolean; error: string; retryAction?: () => void }>({
     isOpen: false,
     error: '',
@@ -110,6 +181,25 @@ export default function Home() {
 
   // 다음 질문 생성
   const handleAnswerSubmit = async (answer: string) => {
+    const trimmedAnswer = answer?.trim();
+
+    if (!trimmedAnswer) {
+      return;
+    }
+
+    if (questionAnswers.length === 0) {
+      const validation = validateInitialAnswer(trimmedAnswer);
+      if (!validation.isValid) {
+        setErrorModal({
+          isOpen: true,
+          error:
+            validation.reason ??
+            '프로젝트 아이디어를 조금 더 구체적으로 알려주시면 다음 질문을 이어갈 수 있어요.',
+        });
+        return;
+      }
+    }
+
     if (isComplete) {
       await handleDocumentGeneration();
       return;
@@ -119,13 +209,13 @@ export default function Home() {
 
     try {
       if (questionAnswers.length === 0) {
-        setProjectDescription(answer);
+        setProjectDescription(trimmedAnswer);
       }
 
       const newQA: QuestionAnswer = {
         id: crypto.randomUUID(),
         question: currentQuestion,
-        answer,
+        answer: trimmedAnswer,
         order: questionAnswers.length + 1,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -144,7 +234,7 @@ export default function Home() {
           body: JSON.stringify({
             sessionId,
             previousAnswers: updatedQAs,
-            currentAnswer: answer,
+              currentAnswer: trimmedAnswer,
           }),
         });
       } catch (fetchError) {
@@ -197,7 +287,7 @@ export default function Home() {
         retryAction: () => {
           setErrorModal({ isOpen: false, error: '' });
           setTimeout(() => {
-            handleAnswerSubmit(answer);
+            handleAnswerSubmit(trimmedAnswer);
           }, 100);
         },
       });
@@ -355,6 +445,7 @@ export default function Home() {
     setShowProjectNameSuggestions(false);
     setShowLoginChat(false);
     setShowHistory(false);
+    setShowTrash(false);
     setSessionId(crypto.randomUUID());
   };
 
@@ -368,6 +459,7 @@ export default function Home() {
     setDocumentPreview(null);
     setShowProjectNameSuggestions(false);
     setShowHistory(false);
+    setShowTrash(false);
     
     // 현재 세션으로 저장
     saveSessionToStorage({
@@ -416,15 +508,16 @@ export default function Home() {
       <Layout>
         <Box
           w="full"
-          h="100vh"
+          h="100%"
           bg="gray.100"
           position="relative"
         >
-          <Flex w="full" h="full" gap={4} p={4}>
+          <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
             <Sidebar
               onNewChat={handleNewSession}
-              onLogin={() => setShowLoginChat(true)}
-              onViewHistory={() => setShowHistory(true)}
+              onLogin={handleOpenLogin}
+              onViewHistory={handleOpenHistory}
+              onViewTrash={handleOpenTrash}
               onEditNickname={() => setShowNicknameSetup(true)}
               isAuthenticated={status === 'authenticated'}
               userEmail={session?.user?.email}
@@ -432,14 +525,14 @@ export default function Home() {
             />
             <Box
               flex={1}
-              h="calc(100vh - 32px)"
+              h="full"
               bg="white"
               borderRadius="xl"
               border="1px solid"
               borderColor="gray.200"
               overflow="hidden"
               boxShadow="lg"
-              my={4}
+              my={0}
             >
               <NicknameSetup
                 onComplete={handleNicknameComplete}
@@ -459,15 +552,16 @@ export default function Home() {
       <Layout>
         <Box
           w="full"
-          h="100vh"
+          h="100%"
           bg="gray.100"
           position="relative"
         >
-          <Flex w="full" h="full" gap={4} p={4}>
+          <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
             <Sidebar
               onNewChat={handleNewSession}
-              onLogin={() => setShowLoginChat(true)}
-              onViewHistory={() => setShowHistory(true)}
+              onLogin={handleOpenLogin}
+              onViewHistory={handleOpenHistory}
+              onViewTrash={handleOpenTrash}
               onEditNickname={() => setShowNicknameSetup(true)}
               isAuthenticated={status === 'authenticated'}
               userEmail={session?.user?.email}
@@ -475,19 +569,59 @@ export default function Home() {
             />
             <Box
               flex={1}
-              h="calc(100vh - 32px)"
+              h="full"
               bg="white"
               borderRadius="xl"
               border="1px solid"
               borderColor="gray.200"
               overflow="hidden"
               boxShadow="lg"
-              my={4}
+              my={0}
             >
               <ChatHistoryList
                 onSelectSession={handleSelectSession}
                 onBack={() => setShowHistory(false)}
               />
+            </Box>
+          </Flex>
+        </Box>
+      </Layout>
+    );
+  }
+
+  // 휴지통 모드
+  if (showTrash) {
+    return (
+      <Layout>
+        <Box
+          w="full"
+          h="100%"
+          bg="gray.100"
+          position="relative"
+        >
+          <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
+            <Sidebar
+              onNewChat={handleNewSession}
+              onLogin={handleOpenLogin}
+              onViewHistory={handleOpenHistory}
+              onViewTrash={handleOpenTrash}
+              onEditNickname={() => setShowNicknameSetup(true)}
+              isAuthenticated={status === 'authenticated'}
+              userEmail={session?.user?.email}
+              userNickname={session?.user?.name || null}
+            />
+            <Box
+              flex={1}
+              h="full"
+              bg="white"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="gray.200"
+              overflow="hidden"
+              boxShadow="lg"
+              my={0}
+            >
+              <TrashBinList onBack={() => setShowTrash(false)} />
             </Box>
           </Flex>
         </Box>
@@ -501,15 +635,16 @@ export default function Home() {
       <Layout>
         <Box
           w="full"
-          h="100vh"
+          h="100%"
           bg="gray.100"
           position="relative"
         >
-          <Flex w="full" h="full" gap={4} p={4}>
+          <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
             <Sidebar
               onNewChat={handleNewSession}
-              onLogin={() => setShowLoginChat(true)}
-              onViewHistory={() => setShowHistory(true)}
+              onLogin={handleOpenLogin}
+              onViewHistory={handleOpenHistory}
+              onViewTrash={handleOpenTrash}
               onEditNickname={() => setShowNicknameSetup(true)}
               isAuthenticated={status === 'authenticated'}
               userEmail={session?.user?.email}
@@ -517,14 +652,14 @@ export default function Home() {
             />
             <Box
               flex={1}
-              h="calc(100vh - 32px)"
+              h="full"
               bg="white"
               borderRadius="xl"
               border="1px solid"
               borderColor="gray.200"
               overflow="hidden"
               boxShadow="lg"
-              my={4}
+              my={0}
             >
               <LoginChat
                 onComplete={handleLoginComplete}
@@ -547,11 +682,12 @@ export default function Home() {
           bg="gray.100"
           position="relative"
         >
-          <Flex w="full" h="full" gap={4} p={4}>
+          <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
             <Sidebar
               onNewChat={handleNewSession}
-              onLogin={() => setShowLoginChat(true)}
-              onViewHistory={() => setShowHistory(true)}
+              onLogin={handleOpenLogin}
+              onViewHistory={handleOpenHistory}
+              onViewTrash={handleOpenTrash}
               onEditNickname={() => setShowNicknameSetup(true)}
               isAuthenticated={status === 'authenticated'}
               userEmail={session?.user?.email}
@@ -561,14 +697,14 @@ export default function Home() {
               align="stretch"
               spacing={0}
               flex={1}
-              h="calc(100vh - 32px)"
+              h="full"
               bg="white"
               borderRadius="xl"
               border="1px solid"
               borderColor="gray.200"
               overflow="hidden"
               boxShadow="lg"
-              my={4}
+              my={0}
             >
               <Box
                 as="header"
@@ -610,11 +746,12 @@ export default function Home() {
           bg="gray.100"
           position="relative"
         >
-          <Flex w="full" h="full" gap={4} p={4}>
+          <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
             <Sidebar
               onNewChat={handleNewSession}
-              onLogin={() => setShowLoginChat(true)}
-              onViewHistory={() => setShowHistory(true)}
+              onLogin={handleOpenLogin}
+              onViewHistory={handleOpenHistory}
+              onViewTrash={handleOpenTrash}
               onEditNickname={() => setShowNicknameSetup(true)}
               isAuthenticated={status === 'authenticated'}
               userEmail={session?.user?.email}
@@ -624,14 +761,14 @@ export default function Home() {
               align="stretch"
               spacing={0}
               flex={1}
-              h="calc(100vh - 32px)"
+              h="full"
               bg="white"
               borderRadius="xl"
               border="1px solid"
               borderColor="gray.200"
               overflow="hidden"
               boxShadow="lg"
-              my={4}
+              my={0}
             >
               <Box
                 as="header"
@@ -677,21 +814,24 @@ export default function Home() {
       <Layout>
         <Box
         w="full"
-        h="100vh"
+        h="100%"
         bg="gray.100"
         position="relative"
+        suppressHydrationWarning
       >
-        <Flex w="full" h="full" gap={4} p={4}>
+        <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
           <Sidebar
             onNewChat={handleNewSession}
-            onLogin={() => setShowLoginChat(true)}
-            onViewHistory={() => setShowHistory(true)}
+            onLogin={handleOpenLogin}
+            onViewHistory={handleOpenHistory}
+            onViewTrash={handleOpenTrash}
             isAuthenticated={status === 'authenticated'}
             userEmail={session?.user?.email}
+            userNickname={session?.user?.name || null}
           />
           <Flex
             direction="column"
-            h="calc(100vh - 32px)"
+            h="full"
             flex={1}
             bg="white"
             borderRadius="xl"
@@ -699,7 +839,7 @@ export default function Home() {
             borderColor="gray.200"
             overflow="hidden"
             boxShadow="lg"
-            my={4}
+            my={0}
           >
           {/* 헤더 */}
           <Box
@@ -712,8 +852,9 @@ export default function Home() {
             flexShrink={0}
             boxShadow="sm"
           >
-            <Flex justify="flex-start" align="center">
+            <Flex justify="space-between" align="center">
               <Logo size="md" />
+              <ApiKeyDisplay />
             </Flex>
           </Box>
 

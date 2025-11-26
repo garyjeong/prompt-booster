@@ -14,6 +14,7 @@ jest.mock('@/lib/prisma', () => ({
 			create: jest.fn(),
 			update: jest.fn(),
 			delete: jest.fn(),
+			deleteMany: jest.fn(),
 			count: jest.fn(),
 		},
 	},
@@ -106,7 +107,7 @@ describe('ChatSessionRepository', () => {
 			const result = await repository.findByUserId('user-1', 10, 0);
 
 			expect(prisma.chatSession.findMany).toHaveBeenCalledWith({
-				where: { userId: 'user-1' },
+				where: { userId: 'user-1', isDeleted: false },
 				include: {
 					questionAnswers: {
 						orderBy: { order: 'asc' },
@@ -117,6 +118,26 @@ describe('ChatSessionRepository', () => {
 				skip: 0,
 			});
 			expect(result).toEqual(mockSessions);
+		});
+	});
+
+	describe('findDeletedByUserId', () => {
+		it('삭제된 세션 목록을 조회해야 함', async () => {
+			(prisma.chatSession.findMany as jest.Mock).mockResolvedValue([]);
+
+			await repository.findDeletedByUserId('user-1', 5, 0);
+
+			expect(prisma.chatSession.findMany).toHaveBeenCalledWith({
+				where: { userId: 'user-1', isDeleted: true },
+				include: {
+					questionAnswers: {
+						orderBy: { order: 'asc' },
+					},
+				},
+				orderBy: { createdAt: 'desc' },
+				take: 5,
+				skip: 0,
+			});
 		});
 	});
 
@@ -209,6 +230,76 @@ describe('ChatSessionRepository', () => {
 
 			expect(prisma.chatSession.delete).toHaveBeenCalledWith({
 				where: { id: 'test-id' },
+			});
+		});
+	});
+
+	describe('deleteBySessionId / hardDeleteBySessionId', () => {
+		it('세션을 영구 삭제해야 함', async () => {
+			(prisma.chatSession.delete as jest.Mock).mockResolvedValue(undefined);
+
+			await repository.deleteBySessionId('session-1');
+
+			expect(prisma.chatSession.delete).toHaveBeenCalledWith({
+				where: { sessionId: 'session-1' },
+			});
+		});
+	});
+
+	describe('softDeleteBySessionId', () => {
+		it('세션을 소프트 삭제해야 함', async () => {
+			(prisma.chatSession.update as jest.Mock).mockResolvedValue(undefined);
+
+			await repository.softDeleteBySessionId('session-1');
+
+			expect(prisma.chatSession.update).toHaveBeenCalledWith({
+				where: { sessionId: 'session-1' },
+				data: expect.objectContaining({
+					isDeleted: true,
+				}),
+			});
+		});
+	});
+
+	describe('restoreBySessionId', () => {
+		it('세션을 복구해야 함', async () => {
+			(prisma.chatSession.update as jest.Mock).mockResolvedValue(undefined);
+
+			await repository.restoreBySessionId('session-1');
+
+			expect(prisma.chatSession.update).toHaveBeenCalledWith({
+				where: { sessionId: 'session-1' },
+				data: {
+					isDeleted: false,
+					deletedAt: null,
+				},
+			});
+		});
+	});
+
+	describe('hardDeleteBySessionId', () => {
+		it('세션을 완전히 삭제해야 함', async () => {
+			(prisma.chatSession.delete as jest.Mock).mockResolvedValue(undefined);
+
+			await repository.hardDeleteBySessionId('session-1');
+
+			expect(prisma.chatSession.delete).toHaveBeenCalledWith({
+				where: { sessionId: 'session-1' },
+			});
+		});
+	});
+
+	describe('hardDeleteDeletedByUserId', () => {
+		it('사용자의 삭제된 세션을 모두 삭제해야 함', async () => {
+			(prisma.chatSession.deleteMany as jest.Mock).mockResolvedValue(undefined);
+
+			await repository.hardDeleteDeletedByUserId('user-1');
+
+			expect(prisma.chatSession.deleteMany).toHaveBeenCalledWith({
+				where: {
+					userId: 'user-1',
+					isDeleted: true,
+				},
 			});
 		});
 	});

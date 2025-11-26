@@ -42,7 +42,25 @@ export class ChatSessionRepository implements IChatSessionRepository {
 		offset?: number
 	): Promise<ChatSessionWithRelations[]> {
 		return prisma.chatSession.findMany({
-			where: { userId },
+			where: { userId, isDeleted: false },
+			include: {
+				questionAnswers: {
+					orderBy: { order: 'asc' },
+				},
+			},
+			orderBy: { createdAt: 'desc' },
+			take: limit,
+			skip: offset,
+		});
+	}
+
+	async findDeletedByUserId(
+		userId: string,
+		limit?: number,
+		offset?: number
+	): Promise<ChatSessionWithRelations[]> {
+		return prisma.chatSession.findMany({
+			where: { userId, isDeleted: true },
 			include: {
 				questionAnswers: {
 					orderBy: { order: 'asc' },
@@ -65,6 +83,8 @@ export class ChatSessionRepository implements IChatSessionRepository {
 				projectDescription: data.projectDescription,
 				currentQuestion: data.currentQuestion,
 				isCompleted: data.isCompleted ?? false,
+				isDeleted: data.isDeleted ?? false,
+				deletedAt: data.deletedAt ?? null,
 				questionAnswers: data.questionAnswers
 					? {
 							create: data.questionAnswers,
@@ -101,8 +121,41 @@ export class ChatSessionRepository implements IChatSessionRepository {
 	}
 
 	async deleteBySessionId(sessionId: string): Promise<void> {
+		await this.hardDeleteBySessionId(sessionId);
+	}
+
+	async softDeleteBySessionId(sessionId: string): Promise<void> {
+		await prisma.chatSession.update({
+			where: { sessionId },
+			data: {
+				isDeleted: true,
+				deletedAt: new Date(),
+			},
+		});
+	}
+
+	async restoreBySessionId(sessionId: string): Promise<void> {
+		await prisma.chatSession.update({
+			where: { sessionId },
+			data: {
+				isDeleted: false,
+				deletedAt: null,
+			},
+		});
+	}
+
+	async hardDeleteBySessionId(sessionId: string): Promise<void> {
 		await prisma.chatSession.delete({
 			where: { sessionId },
+		});
+	}
+
+	async hardDeleteDeletedByUserId(userId: string): Promise<void> {
+		await prisma.chatSession.deleteMany({
+			where: {
+				userId,
+				isDeleted: true,
+			},
 		});
 	}
 

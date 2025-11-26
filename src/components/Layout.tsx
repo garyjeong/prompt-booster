@@ -9,18 +9,20 @@ const Layout = memo(function Layout({ children }: LayoutProps) {
   return (
     <Flex 
       direction="column" 
-      minHeight="100vh" 
+      h="100vh"
       bg="gray.50"
-      p={4}
+      p={0}
       suppressHydrationWarning
     >
       <Box 
         as="main" 
         flex="1" 
         w="full"
-        maxW="4xl"
+        maxW="100%"
         mx="auto"
         h="full"
+        overflow="hidden"
+        suppressHydrationWarning
       >
         {children}
       </Box>

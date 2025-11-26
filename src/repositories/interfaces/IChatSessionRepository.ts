@@ -16,6 +16,8 @@ export interface CreateChatSessionData {
 	projectDescription?: string;
 	currentQuestion?: string;
 	isCompleted?: boolean;
+	isDeleted?: boolean;
+	deletedAt?: Date | null;
 	questionAnswers?: Array<{
 		question: string;
 		answer: string;
@@ -28,6 +30,8 @@ export interface UpdateChatSessionData {
 	projectDescription?: string;
 	currentQuestion?: string;
 	isCompleted?: boolean;
+	isDeleted?: boolean;
+	deletedAt?: Date | null;
 }
 
 export interface IChatSessionRepository {
@@ -53,6 +57,12 @@ export interface IChatSessionRepository {
 	 * @returns 채팅 세션 목록
 	 */
 	findByUserId(
+		userId: string,
+		limit?: number,
+		offset?: number
+	): Promise<ChatSessionWithRelations[]>;
+
+	findDeletedByUserId(
 		userId: string,
 		limit?: number,
 		offset?: number
@@ -87,6 +97,14 @@ export interface IChatSessionRepository {
 	 * @param sessionId 클라이언트 세션 ID
 	 */
 	deleteBySessionId(sessionId: string): Promise<void>;
+
+	softDeleteBySessionId(sessionId: string): Promise<void>;
+
+	restoreBySessionId(sessionId: string): Promise<void>;
+
+	hardDeleteBySessionId(sessionId: string): Promise<void>;
+
+	hardDeleteDeletedByUserId(userId: string): Promise<void>;
 
 	/**
 	 * 채팅 세션 존재 여부 확인

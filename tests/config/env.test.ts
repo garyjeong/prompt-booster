@@ -18,25 +18,25 @@ describe('Env Config', () => {
 
 	describe('getEnvConfig', () => {
 		it('환경 변수를 올바르게 로드해야 함', () => {
-			process.env.GEMINI_API_KEY = 'test-key';
+			process.env.OPENAI_API_KEY = 'test-key';
 			process.env.DATABASE_URL = 'postgresql://test';
 			process.env.NEXTAUTH_SECRET = 'test-secret';
 			process.env.NEXTAUTH_URL = 'http://localhost:3000';
 
 			const config = getEnvConfig();
 
-			expect(config.geminiApiKey).toBe('test-key');
+			expect(config.openaiApiKey).toBe('test-key');
 			expect(config.databaseUrl).toBe('postgresql://test');
 			expect(config.nextAuthSecret).toBe('test-secret');
 			expect(config.nextAuthUrl).toBe('http://localhost:3000');
 		});
 
 		it('환경 변수가 없으면 undefined를 반환해야 함', () => {
-			delete process.env.GEMINI_API_KEY;
+			delete process.env.OPENAI_API_KEY;
 
 			const config = getEnvConfig();
 
-			expect(config.geminiApiKey).toBeUndefined();
+			expect(config.openaiApiKey).toBeUndefined();
 		});
 	});
 
@@ -45,7 +45,7 @@ describe('Env Config', () => {
 			process.env.NODE_ENV = 'production';
 			process.env.DATABASE_URL = 'postgresql://test';
 			process.env.NEXTAUTH_SECRET = 'test-secret';
-			process.env.GEMINI_API_KEY = 'test-key';
+			process.env.OPENAI_API_KEY = 'test-key';
 
 			const result = validateRequiredEnv(true);
 
@@ -57,7 +57,7 @@ describe('Env Config', () => {
 			process.env.NODE_ENV = 'production';
 			delete process.env.DATABASE_URL;
 			delete process.env.NEXTAUTH_SECRET;
-			delete process.env.GEMINI_API_KEY;
+			delete process.env.OPENAI_API_KEY;
 
 			const result = validateRequiredEnv(true);
 
@@ -67,7 +67,7 @@ describe('Env Config', () => {
 
 		it('개발 환경에서는 경고만 표시해야 함', () => {
 			process.env.NODE_ENV = 'development';
-			delete process.env.GEMINI_API_KEY;
+			delete process.env.OPENAI_API_KEY;
 
 			const result = validateRequiredEnv(false);
 

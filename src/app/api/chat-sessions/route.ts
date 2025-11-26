@@ -29,12 +29,21 @@ export async function GET(request: NextRequest) {
 			? parseInt(searchParams.get('offset')!, 10)
 			: undefined;
 
+		const statusParam = searchParams.get('status') || 'active';
+
 		const chatSessionService = new ChatSessionService();
-		const sessions = await chatSessionService.getSessionsByUserId(
-			session.user.id,
-			limit,
-			offset
-		);
+		const sessions =
+			statusParam === 'trash'
+				? await chatSessionService.getDeletedSessionsByUserId(
+						session.user.id,
+						limit,
+						offset
+					)
+				: await chatSessionService.getSessionsByUserId(
+						session.user.id,
+						limit,
+						offset
+					);
 
 		return NextResponse.json({ success: true, data: sessions });
 	} catch (error) {
@@ -60,6 +69,32 @@ export async function POST(request: NextRequest) {
 		const savedSession = await chatSessionService.saveSession(body, userId);
 
 		return NextResponse.json({ success: true, data: savedSession });
+	} catch (error) {
+		return handleError(error);
+	}
+}
+
+/**
+ * DELETE: 삭제된 채팅 세션 모두 영구 삭제
+ */
+export async function DELETE(request: NextRequest) {
+	try {
+		const session = await getServerSession(authOptions);
+		if (!session?.user?.id) {
+			throw new UnauthorizedError('로그인이 필요합니다.');
+		}
+
+		const { searchParams } = new URL(request.url);
+		const statusParam = searchParams.get('status');
+
+		if (statusParam !== 'trash') {
+			throw new ValidationError('status=trash 파라미터가 필요합니다.');
+		}
+
+		const chatSessionService = new ChatSessionService();
+		await chatSessionService.deleteAllDeletedSessions(session.user.id);
+
+		return NextResponse.json({ success: true });
 	} catch (error) {
 		return handleError(error);
 	}

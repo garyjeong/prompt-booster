@@ -26,7 +26,7 @@ describe('/api/chat', () => {
 	describe('POST', () => {
 		it('환경 변수가 없으면 에러를 반환해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: undefined,
+				openaiApiKey: undefined,
 			});
 
 			const request = new Request('http://localhost/api/chat', {
@@ -48,7 +48,7 @@ describe('/api/chat', () => {
 
 		it('유효한 요청을 처리해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: 'test-api-key',
+				openaiApiKey: 'test-api-key',
 			});
 
 			mockChatService.generateNextQuestion.mockResolvedValue({
@@ -77,7 +77,7 @@ describe('/api/chat', () => {
 
 		it('previousAnswers가 없으면 ValidationError를 반환해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: 'test-api-key',
+				openaiApiKey: 'test-api-key',
 			});
 
 			const request = new Request('http://localhost/api/chat', {
@@ -97,7 +97,7 @@ describe('/api/chat', () => {
 
 		it('previousAnswers가 배열이 아니면 ValidationError를 반환해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: 'test-api-key',
+				openaiApiKey: 'test-api-key',
 			});
 
 			const request = new Request('http://localhost/api/chat', {

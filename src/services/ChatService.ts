@@ -3,7 +3,9 @@
  * 채팅 관련 비즈니스 로직 처리
  */
 
-import { generateNextQuestion, suggestProjectNames } from '@/lib/gemini-client';
+import { randomUUID } from 'crypto';
+import { generateNextQuestion, suggestProjectNames } from '@/lib/openai-client';
+import { validateInitialAnswer, INITIAL_CLARIFICATION_QUESTION } from '@/lib/answer-validation';
 import type { QuestionAnswer } from '@/types/chat';
 import type { NextQuestionResponse, ProjectNameSuggestionsResponse } from '@/types/chat';
 
@@ -20,10 +22,22 @@ export class ChatService {
 		currentAnswer?: string,
 		sessionId?: string
 	): Promise<NextQuestionResponse> {
-		const result = await generateNextQuestion(previousAnswers, currentAnswer);
-
 		// 세션 ID 생성 (없으면 새로 생성)
-		const newSessionId = sessionId || crypto.randomUUID();
+		const newSessionId = sessionId || randomUUID();
+
+		// 첫 답변 유효성 검사 (무의미한 입력 차단)
+		if (previousAnswers.length === 1) {
+			const validation = validateInitialAnswer(previousAnswers[0]?.answer || '');
+			if (!validation.isValid) {
+				return {
+					question: validation.followUpQuestion || INITIAL_CLARIFICATION_QUESTION,
+					isComplete: false,
+					sessionId: newSessionId,
+				};
+			}
+		}
+
+		const result = await generateNextQuestion(previousAnswers, currentAnswer);
 
 		return {
 			question: result.question,

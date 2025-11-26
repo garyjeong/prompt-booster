@@ -6,7 +6,7 @@
 import { DocumentRepository } from '@/repositories/DocumentRepository';
 import { UserRepository } from '@/repositories/UserRepository';
 import { NotFoundError, UnauthorizedError } from '@/lib/errors';
-import { generateDocument } from '@/lib/gemini-client';
+import { generateDocument } from '@/lib/openai-client';
 import { DocumentDTO } from '@/dto';
 import type { QuestionAnswer } from '@/types/chat';
 import type { DocumentGenerationResponse } from '@/types/chat';

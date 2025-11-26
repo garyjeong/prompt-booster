@@ -19,6 +19,7 @@ interface SidebarProps {
   onNewChat: () => void;
   onLogin: () => void;
   onViewHistory: () => void;
+  onViewTrash: () => void;
   onEditNickname?: () => void;
   isAuthenticated: boolean;
   userEmail?: string | null;
@@ -34,6 +35,7 @@ export default function Sidebar({
   onNewChat,
   onLogin,
   onViewHistory,
+  onViewTrash,
   onEditNickname,
   isAuthenticated,
   userEmail,
@@ -126,7 +128,7 @@ export default function Sidebar({
     <Box
       ref={sidebarRef}
       position="relative"
-      h="calc(100vh - 32px)"
+      h="full"
       w={`${width}px`}
       bg="white"
       borderRadius="xl"
@@ -134,9 +136,9 @@ export default function Sidebar({
       borderColor="gray.200"
       flexShrink={0}
       boxShadow="lg"
-      my={4}
+      my={0}
     >
-      <VStack align="stretch" spacing={0} h="full" p={4}>
+      <VStack align="stretch" spacing={0} h="full" px={4} pt={2} pb={2}>
         {/* 최상단: 로그인 섹션 */}
         <Box mb={4}>
           {!isAuthenticated ? (
@@ -240,6 +242,22 @@ export default function Sidebar({
             py={2}
           >
             기록 보기
+          </Button>
+
+          {/* 휴지통 */}
+          <Button
+            w="full"
+            justifyContent="flex-start"
+            variant="ghost"
+            onClick={onViewTrash}
+            color="gray.700"
+            fontWeight="500"
+            size="sm"
+            _hover={{ bg: 'gray.100' }}
+            px={2}
+            py={2}
+          >
+            휴지통
           </Button>
         </VStack>
       </VStack>

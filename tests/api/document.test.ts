@@ -32,7 +32,7 @@ describe('/api/document', () => {
 	describe('POST', () => {
 		it('환경 변수가 없으면 에러를 반환해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: undefined,
+				openaiApiKey: undefined,
 			});
 
 			const request = new Request('http://localhost/api/document', {
@@ -53,7 +53,7 @@ describe('/api/document', () => {
 
 		it('로그인한 사용자의 문서를 생성해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: 'test-api-key',
+				openaiApiKey: 'test-api-key',
 			});
 
 			(getServerSession as jest.Mock).mockResolvedValue({
@@ -95,7 +95,7 @@ describe('/api/document', () => {
 
 		it('로그인하지 않은 경우 dev@localhost로 생성해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: 'test-api-key',
+				openaiApiKey: 'test-api-key',
 			});
 
 			(getServerSession as jest.Mock).mockResolvedValue(null);
@@ -134,7 +134,7 @@ describe('/api/document', () => {
 
 		it('questionAnswers가 없으면 ValidationError를 반환해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: 'test-api-key',
+				openaiApiKey: 'test-api-key',
 			});
 
 			(getServerSession as jest.Mock).mockResolvedValue(null);
@@ -154,7 +154,7 @@ describe('/api/document', () => {
 
 		it('questionAnswers가 빈 배열이면 ValidationError를 반환해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: 'test-api-key',
+				openaiApiKey: 'test-api-key',
 			});
 
 			(getServerSession as jest.Mock).mockResolvedValue(null);
@@ -176,7 +176,7 @@ describe('/api/document', () => {
 
 		it('questionAnswers가 배열이 아니면 ValidationError를 반환해야 함', async () => {
 			(getEnvConfig as jest.Mock).mockReturnValue({
-				geminiApiKey: 'test-api-key',
+				openaiApiKey: 'test-api-key',
 			});
 
 			(getServerSession as jest.Mock).mockResolvedValue(null);

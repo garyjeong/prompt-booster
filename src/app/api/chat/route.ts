@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 	try {
 		// 환경 변수 검증
 		const envConfig = getEnvConfig();
-		if (!envConfig.geminiApiKey) {
+		if (!envConfig.openaiApiKey) {
 			return NextResponse.json(
 				{
 					success: false,

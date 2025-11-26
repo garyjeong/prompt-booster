@@ -120,11 +120,11 @@ describe('handleError', () => {
 	it('getUserFriendlyMessage의 모든 분기를 테스트해야 함', () => {
 		(isDevelopment as jest.Mock).mockReturnValue(false);
 
-		// Gemini API 에러
-		const geminiError = new Error('GEMINI_API_KEY is missing');
-		const geminiResponse = handleError(geminiError);
-		const geminiJson = geminiResponse as unknown as { json: () => Promise<any> };
-		geminiJson.json().then((data) => {
+		// OpenAI API 에러
+		const openaiError = new Error('OPENAI_API_KEY is missing');
+		const openaiResponse = handleError(openaiError);
+		const openaiJson = openaiResponse as unknown as { json: () => Promise<any> };
+		openaiJson.json().then((data) => {
 			expect(data.error.error).toContain('AI 서비스에 연결할 수 없습니다');
 		});
 

@@ -18,7 +18,7 @@ import { DeleteIcon, ArrowBackIcon } from '@chakra-ui/icons';
 import { memo, useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import type { ChatSessionStorage } from '@/lib/storage';
-import { getSessionList, deleteSession } from '@/lib/storage';
+import { getSessionList, softDeleteSession } from '@/lib/storage';
 import type { ChatSessionDTO } from '@/services/ChatSessionService';
 
 interface ChatHistoryListProps {
@@ -51,11 +51,11 @@ const ChatHistoryList = memo(function ChatHistoryList({
         try {
           let response: Response;
           try {
-            response = await fetch('/api/chat-sessions');
+            response = await fetch('/api/chat-sessions?status=active');
           } catch (fetchError) {
             console.error('네트워크 연결 실패:', fetchError);
             // 네트워크 에러는 무시하고 로컬 스토리지만 사용
-            return;
+            throw fetchError;
           }
           
           if (response.ok) {
@@ -106,15 +106,17 @@ const ChatHistoryList = memo(function ChatHistoryList({
       });
       
       // 최신순으로 정렬
-      const mergedSessions = Array.from(sessionMap.values()).sort(
-        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      );
+      const mergedSessions = Array.from(sessionMap.values())
+        .filter((session) => !session.isDeleted)
+        .sort(
+          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
       
       setSessions(mergedSessions);
     } catch (error) {
       console.error('세션 불러오기 실패:', error);
       // 실패 시 로컬 스토리지만 사용
-      const localSessions = getSessionList().sessions;
+      const localSessions = getSessionList().sessions.filter((s) => !s.isDeleted);
       setSessions(localSessions);
     } finally {
       setIsLoading(false);
@@ -123,31 +125,21 @@ const ChatHistoryList = memo(function ChatHistoryList({
 
   const handleDelete = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('이 채팅 기록을 삭제하시겠습니까?')) {
-      // 로컬 스토리지에서 삭제
-      deleteSession(sessionId);
-      
-      // DB에서 삭제 (로그인한 경우)
-      if (status === 'authenticated') {
-        try {
-          let response: Response;
-          try {
-            response = await fetch(`/api/chat-sessions/${sessionId}`, {
-              method: 'DELETE',
-            });
-          } catch (fetchError) {
-            // 네트워크 에러는 조용히 무시 (로컬 스토리지에서 이미 삭제됨)
-            console.error('네트워크 연결 실패:', fetchError);
-            return;
-          }
-          // 응답은 확인하지만 에러가 있어도 무시 (로컬에서 이미 삭제됨)
-        } catch (error) {
-          console.error('DB 세션 삭제 실패:', error);
-        }
+    // 로컬 스토리지에서 소프트 삭제
+    softDeleteSession(sessionId);
+    
+    // DB에서 소프트 삭제 (로그인한 경우)
+    if (status === 'authenticated') {
+      try {
+        await fetch(`/api/chat-sessions/${sessionId}`, {
+          method: 'DELETE',
+        });
+      } catch (error) {
+        console.error('DB 세션 삭제 실패:', error);
       }
-      
-      loadSessions();
     }
+    
+    loadSessions();
   };
 
   const formatDate = (date: Date | string) => {
@@ -168,7 +160,7 @@ const ChatHistoryList = memo(function ChatHistoryList({
   };
 
   return (
-    <Box w="full" h="100vh" bg="white">
+    <Flex direction="column" w="full" h="full" bg="white">
       {/* 헤더 */}
       <Flex
         justify="space-between"
@@ -178,6 +170,7 @@ const ChatHistoryList = memo(function ChatHistoryList({
         borderBottom="1px solid"
         borderColor="gray.200"
         bg="white"
+        flexShrink={0}
       >
         <HStack spacing={3}>
           <IconButton
@@ -280,7 +273,7 @@ const ChatHistoryList = memo(function ChatHistoryList({
           </VStack>
         )}
       </Box>
-    </Box>
+    </Flex>
   );
 });
 

@@ -3,11 +3,12 @@
  */
 
 import { ChatService } from '@/services/ChatService';
-import { generateNextQuestion, suggestProjectNames } from '@/lib/gemini-client';
+import { generateNextQuestion, suggestProjectNames } from '@/lib/openai-client';
+import { INITIAL_CLARIFICATION_QUESTION } from '@/lib/answer-validation';
 import type { QuestionAnswer } from '@/types/chat';
 
-// Gemini 클라이언트 모킹
-jest.mock('@/lib/gemini-client', () => ({
+// OpenAI 클라이언트 모킹
+jest.mock('@/lib/openai-client', () => ({
 	generateNextQuestion: jest.fn(),
 	suggestProjectNames: jest.fn(),
 }));
@@ -42,6 +43,26 @@ describe('ChatService', () => {
 
 			expect(generateNextQuestion).toHaveBeenCalledWith(previousAnswers, '온라인 쇼핑몰');
 			expect(result.question).toBe('어떤 기능이 필요하신가요?');
+			expect(result.isComplete).toBe(false);
+			expect(result.sessionId).toBe('session-1');
+		});
+
+		it('첫 답변이 유효하지 않으면 보조 질문만 반환해야 함', async () => {
+			const previousAnswers: QuestionAnswer[] = [
+				{
+					id: 'qa-1',
+					question: '무엇을 만들어보고 싶으신가요?',
+					answer: '안녕',
+					order: 1,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				},
+			];
+
+			const result = await service.generateNextQuestion(previousAnswers, '안녕', 'session-1');
+
+			expect(generateNextQuestion).not.toHaveBeenCalled();
+			expect(result.question).toBe(INITIAL_CLARIFICATION_QUESTION);
 			expect(result.isComplete).toBe(false);
 			expect(result.sessionId).toBe('session-1');
 		});

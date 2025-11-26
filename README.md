@@ -1,21 +1,21 @@
 # 🚀 Prompt Booster - 프로젝트 문서 생성 챗봇
 
-> Gemini 2.5 Flash를 활용한 단계별 질의응답형 프로젝트 문서 생성 도구
+> OpenAI GPT를 활용한 단계별 질의응답형 프로젝트 문서 생성 도구
 
 ![Next.js](https://img.shields.io/badge/Next.js-15.5.2-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)
 ![Chakra UI](https://img.shields.io/badge/Chakra%20UI-2.10.9-teal?logo=chakraui)
-![Google Gemini](https://img.shields.io/badge/Google%20Gemini-2.5--Flash-4285f4?logo=google)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--5--nano-412991?logo=openai)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql)
 
 ## 🎯 프로젝트 소개
 
-**Prompt Booster**는 Gemini 2.5 Flash를 활용하여 단계별 질의응답을 통해 프로젝트 문서를 자동 생성하는 챗봇 서비스입니다. 기능 명세서, PRD, TRD가 혼용된 형태의 상세한 프로젝트 문서를 마크다운 형식으로 생성합니다.
+**Prompt Booster**는 OpenAI GPT를 활용하여 단계별 질의응답을 통해 프로젝트 문서를 자동 생성하는 챗봇 서비스입니다. 기능 명세서, PRD, TRD가 혼용된 형태의 상세한 프로젝트 문서를 마크다운 형식으로 생성합니다.
 
 ### 🌟 핵심 기능
 
 - **단계별 질의응답**: "무엇을 만들어보고 싶으신가요?"로 시작하는 자연스러운 대화
-- **프로젝트 이름 추천**: Gemini가 프로젝트에 맞는 이름 3개씩 추천
+- **프로젝트 이름 추천**: GPT가 프로젝트에 맞는 이름 3개씩 추천
 - **로컬 스토리지 임시 저장**: 최종 제출 전까지 답변 수정 가능
 - **계정 기반 저장**: NextAuth.js + PostgreSQL로 데이터 영구 저장
 - **마크다운 프리뷰**: 생성된 문서를 미리보기 후 다운로드
@@ -24,11 +24,11 @@
 
 ### 1. 환경 변수 설정
 
-`.env.local` 파일을 생성하고 다음 환경 변수를 설정하세요:
+`.env` 파일을 생성하고 다음 환경 변수를 설정하세요:
 
 ```bash
-# Gemini API Key (필수)
-GEMINI_API_KEY=your_gemini_api_key_here
+# OpenAI API Key (필수)
+OPENAI_API_KEY=your_openai_api_key_here
 
 # Database
 DATABASE_URL=postgresql://promptbooster:promptbooster_dev@localhost:5432/promptbooster_dev
@@ -49,7 +49,26 @@ openssl rand -base64 32
 
 ### 2. 데이터베이스 설정
 
-로컬 PostgreSQL이 설치되어 있어야 합니다:
+#### (권장) Docker 컨테이너로 PostgreSQL 실행
+```bash
+# 컨테이너 실행 (백그라운드)
+./scripts/start-db-docker.sh start
+
+# 컨테이너 로그 확인
+./scripts/start-db-docker.sh logs
+
+# 컨테이너 중지 / 삭제
+./scripts/start-db-docker.sh stop
+./scripts/start-db-docker.sh down   # 볼륨까지 삭제
+```
+> `docker-compose.yml`은 기본적으로 `promptbooster/promptbooster_dev` 계정을 사용하며, `POSTGRES_*` 변수를 `.env`에 오버라이드할 수 있습니다.
+
+컨테이너가 구동된 후 Prisma 마이그레이션을 실행하세요:
+```bash
+pnpm prisma migrate dev --name add_is_deleted_to_chat_session
+```
+
+#### (대안) 로컬 PostgreSQL 설치
 
 **macOS:**
 ```bash
@@ -66,7 +85,7 @@ sudo systemctl start postgresql
 
 **데이터베이스 생성:**
 ```bash
-# 자동 설정 스크립트 실행 (권장)
+# 자동 설정 스크립트 실행
 ./scripts/setup-database.sh
 
 # 또는 수동 설정
@@ -92,17 +111,17 @@ pnpm dev
 
 ## 📋 필수 설정
 
-### Gemini API Key 발급
+### OpenAI API Key 발급
 
-1. [Google AI Studio](https://aistudio.google.com/app/apikey) 방문
-2. Google 계정으로 로그인
-3. **Get API Key** > **Create API Key** 클릭
-4. 생성된 키를 `.env.local`의 `GEMINI_API_KEY`에 추가
+1. [OpenAI Platform](https://platform.openai.com/api-keys) 방문
+2. OpenAI 계정으로 로그인
+3. **Create new secret key** 클릭
+4. 생성된 키를 `.env`의 `OPENAI_API_KEY`에 추가
 
 **API 키 확인:**
 ```bash
-# 환경 변수 확인 스크립트 실행
-./scripts/check-gemini-env.sh
+# 환경 변수 확인
+grep OPENAI_API_KEY .env
 ```
 
 ### Google OAuth 설정 (선택사항)
@@ -120,11 +139,8 @@ pnpm dev
 ### Fly.io 환경 변수 설정
 
 ```bash
-# 자동 설정 스크립트 실행 (권장)
-./scripts/setup-fly-env.sh your_gemini_api_key_here
-
-# 또는 수동 설정
-fly secrets set GEMINI_API_KEY=your_gemini_api_key --app prompt-booster
+# 수동 설정
+fly secrets set OPENAI_API_KEY=your_openai_api_key --app prompt-booster
 fly secrets set NEXTAUTH_SECRET=$(openssl rand -base64 32) --app prompt-booster
 fly secrets set NEXTAUTH_URL=https://prompt-booster.fly.dev --app prompt-booster
 
@@ -145,7 +161,6 @@ fly logs --app prompt-booster
 fly secrets list --app prompt-booster
 ```
 
-자세한 문제 해결 가이드는 [GEMINI_API_TROUBLESHOOTING.md](./GEMINI_API_TROUBLESHOOTING.md)를 참조하세요.
 
 ## 🏗️ 프로젝트 구조
 
@@ -153,8 +168,7 @@ fly secrets list --app prompt-booster
 prompt-booster/
 ├── scripts/                    # 유틸리티 스크립트
 │   ├── setup-database.sh      # 로컬 DB 설정
-│   ├── setup-fly-env.sh       # Fly.io 환경 변수 설정
-│   └── check-gemini-env.sh    # Gemini API 키 확인
+│   └── setup-fly-env.sh       # Fly.io 환경 변수 설정
 ├── src/
 │   ├── app/
 │   │   ├── api/
@@ -182,7 +196,7 @@ prompt-booster/
 │   │   ├── constants.ts        # 상수 정의
 │   │   └── env.ts              # 환경 변수 관리
 │   ├── lib/
-│   │   ├── gemini-client.ts    # Gemini API 클라이언트
+│   │   ├── openai-client.ts    # OpenAI API 클라이언트
 │   │   ├── prisma.ts           # Prisma 클라이언트
 │   │   ├── auth.ts             # NextAuth 설정
 │   │   ├── storage.ts          # 로컬 스토리지 관리
@@ -212,7 +226,7 @@ prompt-booster/
 - **UI**: Chakra UI 2.10.9
 - **인증**: NextAuth.js 4.24.13
 - **데이터베이스**: PostgreSQL 16 + Prisma ORM
-- **AI**: Google Gemini 2.5 Flash
+- **AI**: OpenAI GPT-5-nano
 - **마크다운**: react-markdown
 
 ## 📝 사용 방법
@@ -220,7 +234,7 @@ prompt-booster/
 1. **로그인**: Google OAuth로 로그인 (선택사항, 문서 저장을 위해 권장)
 2. **시작**: "무엇을 만들어보고 싶으신가요?" 질문에 답변
 3. **단계별 질의응답**: 각 질문에 답변하며 프로젝트 정보 수집
-4. **프로젝트 이름 추천**: 이름 질문 시 Gemini가 3개씩 추천
+4. **프로젝트 이름 추천**: 이름 질문 시 GPT가 3개씩 추천
 5. **채팅 히스토리**: 사이드바에서 이전 채팅 세션 확인 및 관리
 6. **문서 생성**: 모든 질문 완료 후 문서 자동 생성
 7. **다운로드**: 마크다운 프리뷰 확인 후 다운로드

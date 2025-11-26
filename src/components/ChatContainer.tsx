@@ -31,17 +31,13 @@ const ChatContainer = memo(function ChatContainer({
 
   useEffect(() => {
     if (scrollRef.current) {
-      // 새 메시지가 추가되었을 때만 하단으로 스크롤
-      // 초기 로드나 질문만 변경된 경우에는 스크롤하지 않음
-      const hasNewMessage = questionAnswers.length > prevQuestionAnswersLength.current;
-      
-      if (hasNewMessage) {
-        // 새 메시지 추가 시 하단으로 스크롤
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      } else if (questionAnswers.length === 0 && currentQuestion) {
-        // 초기 질문만 있을 때는 상단 유지
-        scrollRef.current.scrollTop = 0;
-      }
+      // 항상 스크롤을 하단으로 이동
+      // setTimeout을 사용하여 렌더링이 완료된 후 스크롤하도록 보장
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }, 100);
       
       prevQuestionAnswersLength.current = questionAnswers.length;
     }
