@@ -168,12 +168,19 @@ export default function Home() {
           },
           body: JSON.stringify(chatSession),
         }).catch((error) => {
-          // 네트워크 에러는 조용히 무시 (로컬 스토리지는 유지)
-          if (error instanceof TypeError && error.message === 'Failed to fetch') {
-            // 네트워크 연결 실패는 조용히 무시
-            return;
+          // 네트워크 에러 처리 (로컬 스토리지는 유지되므로 사용자 경험에 영향 없음)
+          // 개발 환경에서는 상세 로그, 프로덕션에서는 간단한 로그
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('DB 세션 저장 실패 (로컬 스토리지는 유지됨):', {
+              error: error instanceof Error ? error.message : String(error),
+              type: error instanceof TypeError ? 'NetworkError' : 'UnknownError',
+              sessionId: chatSession.sessionId,
+            });
+          } else {
+            // 프로덕션에서는 에러 추적 서비스에 전송할 수 있음 (예: Sentry)
+            console.error('DB 세션 저장 실패:', error instanceof Error ? error.message : String(error));
           }
-          console.error('DB 세션 저장 실패:', error);
+          // 사용자에게는 알림하지 않음 (로컬 스토리지가 있으므로)
         });
       }
     }
@@ -237,40 +244,74 @@ export default function Home() {
               currentAnswer: trimmedAnswer,
           }),
         });
-      } catch (fetchError) {
+      } catch {
         // 네트워크 에러 (서버 연결 실패, 타임아웃 등)
         throw new Error('네트워크 연결에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.');
       }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        let errorData: unknown = {};
+        try {
+          const text = await response.text();
+          if (text) {
+            errorData = JSON.parse(text);
+          }
+        } catch (parseError) {
+          // JSON 파싱 실패 시 상세 정보 로깅 (개발 환경)
+          if (process.env.NODE_ENV === 'development') {
+            console.error('JSON 파싱 실패:', {
+              status: response.status,
+              statusText: response.statusText,
+              parseError: parseError instanceof Error ? parseError.message : String(parseError),
+            });
+          }
+          throw new Error(`서버 응답을 처리할 수 없습니다. (상태 코드: ${response.status})`);
+        }
         // API 응답 형식: { success: false, error: { error: string, code: string } } 또는 { success: false, error: string }
         const errorMessage = 
-          (typeof errorData?.error === 'object' && errorData?.error?.error) 
-          || (typeof errorData?.error === 'string' && errorData?.error)
+          (typeof errorData === 'object' && errorData !== null && 'error' in errorData && typeof errorData.error === 'object' && errorData.error !== null && 'error' in errorData.error && typeof errorData.error.error === 'string' && errorData.error.error)
+          || (typeof errorData === 'object' && errorData !== null && 'error' in errorData && typeof errorData.error === 'string' && errorData.error)
           || '다음 질문 생성에 실패했습니다.';
         throw new Error(errorMessage);
       }
 
-      const result = await response.json().catch((parseError) => {
+      let result: unknown;
+      try {
+        const text = await response.text();
+        if (!text) {
+          throw new Error('서버 응답이 비어있습니다.');
+        }
+        result = JSON.parse(text);
+      } catch {
+        // JSON 파싱 실패 시 상세 정보 로깅 (개발 환경)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('JSON 파싱 실패');
+        }
         throw new Error('서버 응답을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.');
-      });
+      }
+
+      // 타입 가드
+      if (typeof result !== 'object' || result === null || !('success' in result)) {
+        throw new Error('서버 응답 형식이 올바르지 않습니다.');
+      }
 
       if (!result.success) {
         // API 응답 형식: { success: false, error: { error: string, code: string } } 또는 { success: false, error: string }
+        const errorResult = result as { success: false; error: unknown };
         const errorMessage = 
-          (typeof result?.error === 'object' && result?.error?.error)
-          || (typeof result?.error === 'string' && result?.error)
+          (typeof errorResult.error === 'object' && errorResult.error !== null && 'error' in errorResult.error && typeof (errorResult.error as { error: unknown }).error === 'string' && (errorResult.error as { error: string }).error)
+          || (typeof errorResult.error === 'string' && errorResult.error)
           || '알 수 없는 오류가 발생했습니다.';
         throw new Error(errorMessage);
       }
 
-      setCurrentQuestion(result.data.question);
-      setIsComplete(result.data.isComplete);
-      setSessionId(result.data.sessionId);
+      const successResult = result as { success: true; data: { question: string; isComplete: boolean; sessionId: string } };
+      setCurrentQuestion(successResult.data.question);
+      setIsComplete(successResult.data.isComplete);
+      setSessionId(successResult.data.sessionId);
 
-      if (result.data.question.toLowerCase().includes('프로젝트 이름') || 
-          result.data.question.toLowerCase().includes('이름')) {
+      if (successResult.data.question.toLowerCase().includes('프로젝트 이름') || 
+          successResult.data.question.toLowerCase().includes('이름')) {
         await loadProjectNameSuggestions();
       }
     } catch (error) {
@@ -318,27 +359,61 @@ export default function Home() {
       }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        let errorData: unknown = {};
+        try {
+          const text = await response.text();
+          if (text) {
+            errorData = JSON.parse(text);
+          }
+        } catch (parseError) {
+          // JSON 파싱 실패 시 상세 정보 로깅 (개발 환경)
+          if (process.env.NODE_ENV === 'development') {
+            console.error('JSON 파싱 실패:', {
+              status: response.status,
+              statusText: response.statusText,
+              parseError: parseError instanceof Error ? parseError.message : String(parseError),
+            });
+          }
+          throw new Error(`서버 응답을 처리할 수 없습니다. (상태 코드: ${response.status})`);
+        }
         const errorMessage = 
-          (typeof errorData?.error === 'object' && errorData?.error?.error)
-          || (typeof errorData?.error === 'string' && errorData?.error)
+          (typeof errorData === 'object' && errorData !== null && 'error' in errorData && typeof errorData.error === 'object' && errorData.error !== null && 'error' in errorData.error && typeof errorData.error.error === 'string' && errorData.error.error)
+          || (typeof errorData === 'object' && errorData !== null && 'error' in errorData && typeof errorData.error === 'string' && errorData.error)
           || '프로젝트 이름 추천에 실패했습니다.';
         throw new Error(errorMessage);
       }
 
-      const result = await response.json().catch((parseError) => {
+      let result: unknown;
+      try {
+        const text = await response.text();
+        if (!text) {
+          throw new Error('서버 응답이 비어있습니다.');
+        }
+        result = JSON.parse(text);
+      } catch {
+        // JSON 파싱 실패 시 상세 정보 로깅 (개발 환경)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('JSON 파싱 실패');
+        }
         throw new Error('서버 응답을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.');
-      });
+      }
+
+      // 타입 가드
+      if (typeof result !== 'object' || result === null || !('success' in result)) {
+        throw new Error('서버 응답 형식이 올바르지 않습니다.');
+      }
 
       if (!result.success) {
+        const errorResult = result as { success: false; error: unknown };
         const errorMessage = 
-          (typeof result?.error === 'object' && result?.error?.error)
-          || (typeof result?.error === 'string' && result?.error)
+          (typeof errorResult.error === 'object' && errorResult.error !== null && 'error' in errorResult.error && typeof (errorResult.error as { error: unknown }).error === 'string' && (errorResult.error as { error: string }).error)
+          || (typeof errorResult.error === 'string' && errorResult.error)
           || '알 수 없는 오류가 발생했습니다.';
         throw new Error(errorMessage);
       }
 
-      setProjectNameSuggestions(result.data.suggestions);
+      const successResult = result as { success: true; data: { suggestions: ProjectNameSuggestion[] } };
+      setProjectNameSuggestions(successResult.data.suggestions);
     } catch (error) {
       console.error('프로젝트 이름 추천 에러:', error);
       const errorMessage = error instanceof Error ? error.message : '프로젝트 이름 추천에 실패했습니다.';
@@ -398,27 +473,61 @@ export default function Home() {
       }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        let errorData: unknown = {};
+        try {
+          const text = await response.text();
+          if (text) {
+            errorData = JSON.parse(text);
+          }
+        } catch (parseError) {
+          // JSON 파싱 실패 시 상세 정보 로깅 (개발 환경)
+          if (process.env.NODE_ENV === 'development') {
+            console.error('JSON 파싱 실패:', {
+              status: response.status,
+              statusText: response.statusText,
+              parseError: parseError instanceof Error ? parseError.message : String(parseError),
+            });
+          }
+          throw new Error(`서버 응답을 처리할 수 없습니다. (상태 코드: ${response.status})`);
+        }
         const errorMessage = 
-          (typeof errorData?.error === 'object' && errorData?.error?.error)
-          || (typeof errorData?.error === 'string' && errorData?.error)
+          (typeof errorData === 'object' && errorData !== null && 'error' in errorData && typeof errorData.error === 'object' && errorData.error !== null && 'error' in errorData.error && typeof errorData.error.error === 'string' && errorData.error.error)
+          || (typeof errorData === 'object' && errorData !== null && 'error' in errorData && typeof errorData.error === 'string' && errorData.error)
           || '문서 생성에 실패했습니다.';
         throw new Error(errorMessage);
       }
 
-      const result = await response.json().catch((parseError) => {
+      let result: unknown;
+      try {
+        const text = await response.text();
+        if (!text) {
+          throw new Error('서버 응답이 비어있습니다.');
+        }
+        result = JSON.parse(text);
+      } catch {
+        // JSON 파싱 실패 시 상세 정보 로깅 (개발 환경)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('JSON 파싱 실패');
+        }
         throw new Error('서버 응답을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.');
-      });
+      }
+
+      // 타입 가드
+      if (typeof result !== 'object' || result === null || !('success' in result)) {
+        throw new Error('서버 응답 형식이 올바르지 않습니다.');
+      }
 
       if (!result.success) {
+        const errorResult = result as { success: false; error: unknown };
         const errorMessage = 
-          (typeof result?.error === 'object' && result?.error?.error)
-          || (typeof result?.error === 'string' && result?.error)
+          (typeof errorResult.error === 'object' && errorResult.error !== null && 'error' in errorResult.error && typeof (errorResult.error as { error: unknown }).error === 'string' && (errorResult.error as { error: string }).error)
+          || (typeof errorResult.error === 'string' && errorResult.error)
           || '알 수 없는 오류가 발생했습니다.';
         throw new Error(errorMessage);
       }
 
-      setDocumentPreview(result.data);
+      const successResult = result as { success: true; data: DocumentGenerationResponse };
+      setDocumentPreview(successResult.data);
     } catch (error) {
       console.error('문서 생성 에러:', error);
       const errorMessage = error instanceof Error ? error.message : '문서 생성에 실패했습니다.';

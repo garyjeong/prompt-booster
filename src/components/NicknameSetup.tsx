@@ -95,16 +95,34 @@ const NicknameSetup = memo(function NicknameSetup({
             },
             body: JSON.stringify({ nickname: trimmed }),
           });
-        } catch (fetchError) {
+        } catch {
           throw new Error('네트워크 연결에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.');
         }
         
-        const data = await response.json().catch(() => ({}));
+        let data: unknown = {};
+        try {
+          const text = await response.text();
+          if (text) {
+            data = JSON.parse(text);
+          }
+        } catch (parseError) {
+          // JSON 파싱 실패 시 상세 정보 로깅 (개발 환경)
+          if (process.env.NODE_ENV === 'development') {
+            console.error('JSON 파싱 실패:', {
+              status: response.status,
+              statusText: response.statusText,
+              parseError: parseError instanceof Error ? parseError.message : String(parseError),
+            });
+          }
+          if (!response.ok) {
+            throw new Error(`서버 응답을 처리할 수 없습니다. (상태 코드: ${response.status})`);
+          }
+        }
         
         if (!response.ok) {
           const errorMessage = 
-            (typeof data?.error === 'object' && data?.error?.error)
-            || (typeof data?.error === 'string' && data?.error)
+            (typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'object' && data.error !== null && 'error' in data.error && typeof data.error.error === 'string' && data.error.error)
+            || (typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string' && data.error)
             || '닉네임 저장에 실패했습니다.';
           throw new Error(errorMessage);
         }

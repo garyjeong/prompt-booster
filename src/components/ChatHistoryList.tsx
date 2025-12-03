@@ -59,8 +59,23 @@ const ChatHistoryList = memo(function ChatHistoryList({
           }
           
           if (response.ok) {
-            const result = await response.json().catch(() => null);
-            if (result?.success) {
+            let result: unknown = null;
+            try {
+              const text = await response.text();
+              if (text) {
+                result = JSON.parse(text);
+              }
+            } catch (parseError) {
+              // JSON 파싱 실패 시 로깅 (개발 환경)
+              if (process.env.NODE_ENV === 'development') {
+                console.error('JSON 파싱 실패:', {
+                  parseError: parseError instanceof Error ? parseError.message : String(parseError),
+                });
+              }
+              // 에러 발생 시 로컬 스토리지만 사용
+              result = null;
+            }
+            if (result && typeof result === 'object' && result !== null && 'success' in result && result.success === true && 'data' in result && Array.isArray(result.data)) {
               dbSessions = result.data;
             }
           }

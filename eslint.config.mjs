@@ -20,6 +20,14 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    rules: {
+      // 빈 catch 블록 경고
+      "no-empty": ["warn", { allowEmptyCatch: false }],
+      // 빈 객체 반환 패턴 경고
+      "no-return-assign": "warn",
+    },
+  },
 ];
 
 export default eslintConfig;

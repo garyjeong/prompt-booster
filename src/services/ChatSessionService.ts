@@ -4,7 +4,7 @@
  */
 
 import { ChatSessionRepository } from '@/repositories/ChatSessionRepository';
-import type { IChatSessionRepository } from '@/repositories/interfaces/IChatSessionRepository';
+import type { IChatSessionRepository, ChatSessionWithRelations } from '@/repositories/interfaces/IChatSessionRepository';
 import type { QuestionAnswer } from '@/types/chat';
 import type { ChatSessionStorage } from '@/lib/storage';
 
@@ -171,8 +171,8 @@ export class ChatSessionService {
 			projectDescription: session.projectDescription || undefined,
 			currentQuestion: session.currentQuestion || undefined,
 			isCompleted: session.isCompleted,
-			isDeleted: session.isDeleted,
-			deletedAt: session.deletedAt,
+			isDeleted: 'isDeleted' in session ? Boolean((session as ChatSessionWithRelations & { isDeleted?: boolean }).isDeleted) : false,
+			deletedAt: 'deletedAt' in session ? ((session as ChatSessionWithRelations & { deletedAt?: Date | null }).deletedAt ?? null) : null,
 			questionAnswers: session.questionAnswers.map((qa) => ({
 				id: qa.id,
 				question: qa.question,

@@ -9,7 +9,8 @@ import { DocumentService } from '@/services/DocumentService';
 import { handleError } from '@/lib/middleware/error-handler';
 import { ValidationError } from '@/lib/errors';
 import { getEnvConfig } from '@/config/env';
-import type { DocumentGenerationRequest } from '@/types/chat';
+import { DocumentGenerationRequestSchema, DocumentGenerationResponseSchema } from '@/types/chat';
+import { createSuccessResponseSchema } from '@/types/api';
 
 export async function POST(request: NextRequest) {
 	try {
@@ -39,23 +40,42 @@ export async function POST(request: NextRequest) {
 			userEmail = 'dev@localhost';
 		}
 
-		const body: DocumentGenerationRequest = await request.json();
-
-		if (
-			!body.questionAnswers ||
-			!Array.isArray(body.questionAnswers) ||
-			body.questionAnswers.length === 0
-		) {
-			throw new ValidationError('questionAnswers가 필요합니다.');
+		// 요청 본문 파싱 및 검증
+		let body: unknown;
+		try {
+			body = await request.json();
+		} catch {
+			throw new ValidationError('요청 본문을 파싱할 수 없습니다.');
 		}
+
+		const validatedBody = DocumentGenerationRequestSchema.parse(body);
+
+		if (validatedBody.questionAnswers.length === 0) {
+			throw new ValidationError('questionAnswers가 비어있습니다.');
+		}
+
+		// QuestionAnswer의 Date 필드를 변환
+		const normalizedAnswers = validatedBody.questionAnswers.map((qa) => ({
+			...qa,
+			createdAt: qa.createdAt instanceof Date ? qa.createdAt : qa.createdAt ? new Date(qa.createdAt) : undefined,
+			updatedAt: qa.updatedAt instanceof Date ? qa.updatedAt : qa.updatedAt ? new Date(qa.updatedAt) : undefined,
+		}));
 
 		const documentService = new DocumentService();
 		const response = await documentService.createDocument(
 			userEmail,
-			body.questionAnswers
+			normalizedAnswers
 		);
 
-		return NextResponse.json({ success: true, data: response });
+		// 응답 검증
+		const validatedResponse = DocumentGenerationResponseSchema.parse(response);
+		const responseSchema = createSuccessResponseSchema(DocumentGenerationResponseSchema);
+
+		// 응답 형식 검증
+		const apiResponse = { success: true as const, data: validatedResponse };
+		responseSchema.parse(apiResponse);
+
+		return NextResponse.json(apiResponse);
 	} catch (error) {
 		return handleError(error);
 	}

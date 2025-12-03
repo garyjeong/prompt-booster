@@ -199,13 +199,19 @@ function serializeSession(session: ChatSessionStorage) {
   };
 }
 
-function deserializeSession(session: any): ChatSessionStorage {
+function deserializeSession(session: unknown): ChatSessionStorage {
+	const s = session as Record<string, unknown>;
   return {
-    ...session,
-    createdAt: toDateOrNow(session.createdAt),
-    updatedAt: toDateOrNow(session.updatedAt),
-    deletedAt: session.deletedAt ? toDateOrNull(session.deletedAt) ?? undefined : undefined,
-    isDeleted: session.isDeleted ?? false,
+    sessionId: String(s.sessionId || ''),
+    questionAnswers: Array.isArray(s.questionAnswers) ? s.questionAnswers as QuestionAnswer[] : [],
+    currentQuestion: s.currentQuestion ? String(s.currentQuestion) : undefined,
+    isCompleted: Boolean(s.isCompleted),
+    projectDescription: s.projectDescription ? String(s.projectDescription) : undefined,
+    createdAt: toDateOrNow(s.createdAt as Date | string | null | undefined),
+    updatedAt: toDateOrNow(s.updatedAt as Date | string | null | undefined),
+    deletedAt: s.deletedAt ? toDateOrNull(s.deletedAt as Date | string | null | undefined) ?? undefined : undefined,
+    isDeleted: Boolean(s.isDeleted),
+    title: s.title ? String(s.title) : undefined,
   };
 }
 

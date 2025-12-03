@@ -19,6 +19,7 @@ import { ArrowBackIcon, RepeatIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type { ChatSessionStorage } from '@/lib/storage';
+import type { QuestionAnswer } from '@/types/chat';
 import {
 	getSessionList,
 	restoreSession,
@@ -56,15 +57,21 @@ export default function TrashBinList({ onBack }: TrashBinListProps) {
 					if (response.ok) {
 						const result = await response.json();
 						if (result?.success) {
-							const serverSessions: ChatSessionStorage[] = result.data.map(
-								(session: any) => ({
-									...session,
-									createdAt: new Date(session.createdAt),
-									updatedAt: new Date(session.updatedAt),
-									deletedAt: session.deletedAt ? new Date(session.deletedAt) : undefined,
+							const serverSessions: ChatSessionStorage[] = result.data.map((session: unknown) => {
+								const s = session as Record<string, unknown>;
+								return {
+									sessionId: String(s.sessionId || ''),
+									questionAnswers: Array.isArray(s.questionAnswers) ? s.questionAnswers as QuestionAnswer[] : [],
+									currentQuestion: s.currentQuestion ? String(s.currentQuestion) : undefined,
+									isCompleted: Boolean(s.isCompleted),
+									projectDescription: s.projectDescription ? String(s.projectDescription) : undefined,
+									createdAt: s.createdAt ? new Date(String(s.createdAt)) : new Date(),
+									updatedAt: s.updatedAt ? new Date(String(s.updatedAt)) : new Date(),
+									deletedAt: s.deletedAt ? new Date(String(s.deletedAt)) : undefined,
 									isDeleted: true,
-								})
-							);
+									title: s.title ? String(s.title) : undefined,
+								};
+							});
 							const map = new Map<string, ChatSessionStorage>();
 							[...localSessions, ...serverSessions].forEach((session) => {
 								map.set(session.sessionId, session);

@@ -7,7 +7,8 @@ import { ChatService } from '@/services/ChatService';
 import { handleError } from '@/lib/middleware/error-handler';
 import { ValidationError } from '@/lib/errors';
 import { getEnvConfig } from '@/config/env';
-import type { NextQuestionRequest } from '@/types/chat';
+import { NextQuestionRequestSchema, NextQuestionResponseSchema } from '@/types/chat';
+import { createSuccessResponseSchema } from '@/types/api';
 
 export async function POST(request: NextRequest) {
 	try {
@@ -26,20 +27,39 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		const body: NextQuestionRequest = await request.json();
-
-		if (!body.previousAnswers || !Array.isArray(body.previousAnswers)) {
-			throw new ValidationError('previousAnswers가 필요합니다.');
+		// 요청 본문 파싱 및 검증
+		let body: unknown;
+		try {
+			body = await request.json();
+		} catch {
+			throw new ValidationError('요청 본문을 파싱할 수 없습니다.');
 		}
+
+		const validatedBody = NextQuestionRequestSchema.parse(body);
+
+		// QuestionAnswer의 Date 필드를 변환
+		const normalizedAnswers = validatedBody.previousAnswers.map((qa) => ({
+			...qa,
+			createdAt: qa.createdAt instanceof Date ? qa.createdAt : qa.createdAt ? new Date(qa.createdAt) : undefined,
+			updatedAt: qa.updatedAt instanceof Date ? qa.updatedAt : qa.updatedAt ? new Date(qa.updatedAt) : undefined,
+		}));
 
 		const chatService = new ChatService();
 		const response = await chatService.generateNextQuestion(
-			body.previousAnswers,
-			body.currentAnswer,
-			body.sessionId
+			normalizedAnswers,
+			validatedBody.currentAnswer,
+			validatedBody.sessionId
 		);
 
-		return NextResponse.json({ success: true, data: response });
+		// 응답 검증
+		const validatedResponse = NextQuestionResponseSchema.parse(response);
+		const responseSchema = createSuccessResponseSchema(NextQuestionResponseSchema);
+
+		// 응답 형식 검증
+		const apiResponse = { success: true as const, data: validatedResponse };
+		responseSchema.parse(apiResponse);
+
+		return NextResponse.json(apiResponse);
 	} catch (error) {
 		return handleError(error);
 	}

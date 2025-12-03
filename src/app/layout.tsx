@@ -3,7 +3,13 @@ import { ChakraProvider, ColorModeScript } from "@chakra-ui/react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/Providers";
+import { initializeEnv } from "@/lib/init-env";
 import "./globals.css";
+
+// 환경 변수 초기화 (서버 사이드에서만 실행)
+if (typeof window === 'undefined') {
+	initializeEnv();
+}
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

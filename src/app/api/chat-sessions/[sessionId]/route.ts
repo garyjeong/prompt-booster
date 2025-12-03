@@ -92,9 +92,24 @@ export async function PATCH(
 	try {
 		const { sessionId } = await params;
 		const session = await getServerSession(authOptions);
-		const body = await request.json().catch(() => ({}));
+		let body: { action?: string } = {};
+		try {
+			const text = await request.text();
+			if (text) {
+				const parsed = JSON.parse(text);
+				if (parsed && typeof parsed === 'object') {
+					body = parsed as { action?: string };
+				}
+			}
+		} catch (parseError) {
+			// JSON 파싱 실패 시 빈 객체 사용 (기본값)
+			if (process.env.NODE_ENV === 'development') {
+				console.warn('JSON 파싱 실패, 빈 객체 사용:', parseError instanceof Error ? parseError.message : String(parseError));
+			}
+			body = {};
+		}
 
-		if (!body?.action) {
+		if (!body.action) {
 			throw new NotFoundError('요청 action이 필요합니다.');
 		}
 

@@ -136,13 +136,24 @@ grep OPENAI_API_KEY .env
 
 ## 🚀 배포 (Fly.io)
 
+### 배포된 앱
+
+- **프로덕션 URL**: https://prompt-booster.fly.dev
+- **리전**: iad (US East)
+- **데이터베이스**: Fly.io Managed PostgreSQL (자동 연결됨)
+
 ### Fly.io 환경 변수 설정
 
 ```bash
-# 수동 설정
-fly secrets set OPENAI_API_KEY=your_openai_api_key --app prompt-booster
-fly secrets set NEXTAUTH_SECRET=$(openssl rand -base64 32) --app prompt-booster
-fly secrets set NEXTAUTH_URL=https://prompt-booster.fly.dev --app prompt-booster
+# 필수 환경 변수 설정
+fly secrets set OPENAI_API_KEY="your_openai_api_key" --app prompt-booster
+fly secrets set GOOGLE_CLIENT_ID="your_google_client_id" --app prompt-booster
+fly secrets set GOOGLE_CLIENT_SECRET="your_google_client_secret" --app prompt-booster
+
+# 이미 설정된 환경 변수
+# - DATABASE_URL (자동 설정됨)
+# - NEXTAUTH_SECRET (자동 생성됨)
+# - NEXTAUTH_URL (https://prompt-booster.fly.dev)
 
 # 앱 재시작
 fly apps restart prompt-booster
@@ -161,6 +172,21 @@ fly logs --app prompt-booster
 fly secrets list --app prompt-booster
 ```
 
+### 배포 명령어
+
+```bash
+# 배포
+fly deploy --app prompt-booster
+
+# 데이터베이스 마이그레이션은 자동으로 실행됩니다 (release_command)
+```
+
+
+## 📚 문서
+
+- [CONTEXT.md](./CONTEXT.md): 프로젝트 구조, 아키텍처, 주요 의사결정
+- [CLAUDE.md](./CLAUDE.md): AI 에이전트를 위한 프로젝트 가이드
+- [IMPROVEMENTS.md](./IMPROVEMENTS.md): 개선 사항 완료 보고서
 
 ## 🏗️ 프로젝트 구조
 
@@ -226,8 +252,10 @@ prompt-booster/
 - **UI**: Chakra UI 2.10.9
 - **인증**: NextAuth.js 4.24.13
 - **데이터베이스**: PostgreSQL 16 + Prisma ORM
-- **AI**: OpenAI GPT-5-nano
+- **AI**: OpenAI GPT-4o-mini
 - **마크다운**: react-markdown
+- **타입 검증**: Zod 3.25.76
+- **E2E 테스트**: Playwright
 
 ## 📝 사용 방법
 
@@ -280,8 +308,22 @@ pnpm test:coverage
 - **API 라우트 테스트**: API 엔드포인트 테스트
 - **컴포넌트 테스트**: React 컴포넌트 테스트
 - **유틸리티 테스트**: 헬퍼 함수 테스트
+- **E2E 테스트**: Playwright를 사용한 End-to-End 테스트
 
-자세한 내용은 [tests/README.md](./tests/README.md)를 참조하세요.
+### 테스트 실행
+
+```bash
+# 단위/통합 테스트
+pnpm test
+
+# E2E 테스트
+pnpm test:e2e
+
+# E2E 테스트 (UI 모드)
+pnpm test:e2e:ui
+```
+
+자세한 내용은 [tests/README.md](./tests/README.md)와 [tests/e2e/README.md](./tests/e2e/README.md)를 참조하세요.
 
 ## 📄 라이선스
 
