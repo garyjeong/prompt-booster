@@ -5,36 +5,35 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import {
-  Box,
-  VStack,
-  Spinner,
-  Flex,
-  Code,
-} from '@chakra-ui/react';
-import Layout from '@/components/Layout';
-import Logo from '@/components/Logo';
 import ChatContainer from '@/components/ChatContainer';
-import ChatInput from '@/components/ChatInput';
-import ProjectNameSuggestions from '@/components/ProjectNameSuggestions';
-import DocumentPreview from '@/components/DocumentPreview';
-import LoginChat from '@/components/LoginChat';
-import NicknameSetup from '@/components/NicknameSetup';
-import Sidebar from '@/components/Sidebar';
 import ChatHistoryList from '@/components/ChatHistoryList';
-import TrashBinList from '@/components/TrashBinList';
+import ChatInput from '@/components/ChatInput';
+import DocumentPreview from '@/components/DocumentPreview';
 import ErrorModal from '@/components/ErrorModal';
-import { signIn } from 'next-auth/react';
-import {
-  saveSessionToStorage,
-  clearSessionFromStorage,
-  type ChatSessionStorage,
-} from '@/lib/storage';
-import type { QuestionAnswer, ProjectNameSuggestion } from '@/types/chat';
-import type { DocumentGenerationResponse } from '@/types/chat';
+import Layout from '@/components/Layout';
+import LoginModal from '@/components/LoginModal';
+import Logo from '@/components/Logo';
+import NicknameSetup from '@/components/NicknameSetup';
+import ProjectNameSuggestions from '@/components/ProjectNameSuggestions';
+import Sidebar from '@/components/Sidebar';
+import TrashBinList from '@/components/TrashBinList';
 import { validateInitialAnswer } from '@/lib/answer-validation';
+import {
+    clearSessionFromStorage,
+    saveSessionToStorage,
+    type ChatSessionStorage,
+} from '@/lib/storage';
+import type { DocumentGenerationResponse, ProjectNameSuggestion, QuestionAnswer } from '@/types/chat';
+import {
+    Box,
+    Card,
+    CardBody,
+    Code,
+    Flex,
+    Spinner
+} from '@chakra-ui/react';
+import { signIn, useSession } from 'next-auth/react';
+import { useEffect, useState } from 'react';
 
 const INITIAL_QUESTION = '무엇을 만들어보고 싶으신가요?';
 
@@ -354,7 +353,7 @@ export default function Home() {
             projectDescription,
           }),
         });
-      } catch (fetchError) {
+      } catch {
         throw new Error('네트워크 연결에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.');
       }
 
@@ -468,7 +467,7 @@ export default function Home() {
             questionAnswers,
           }),
         });
-      } catch (fetchError) {
+      } catch {
         throw new Error('네트워크 연결에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.');
       }
 
@@ -615,13 +614,7 @@ export default function Home() {
   if (showNicknameSetup) {
     return (
       <Layout>
-        <Box
-          w="full"
-          h="100%"
-          bg="gray.100"
-          position="relative"
-        >
-          <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
+          <Flex w="full" h="full" gap={6} p={6}>
             <Sidebar
               onNewChat={handleNewSession}
               onLogin={handleOpenLogin}
@@ -632,25 +625,16 @@ export default function Home() {
               userEmail={session?.user?.email}
               userNickname={session?.user?.name || null}
             />
-            <Box
-              flex={1}
-              h="full"
-              bg="white"
-              borderRadius="xl"
-              border="1px solid"
-              borderColor="gray.200"
-              overflow="hidden"
-              boxShadow="lg"
-              my={0}
-            >
+            <Card variant="floating" flex={1} h="full" overflow="hidden">
+              <CardBody p={0} h="full" display="flex" flexDirection="column">
               <NicknameSetup
                 onComplete={handleNicknameComplete}
                 onCancel={() => setShowNicknameSetup(false)}
                 currentNickname={session?.user?.name || null}
               />
-            </Box>
+              </CardBody>
+            </Card>
           </Flex>
-        </Box>
       </Layout>
     );
   }
@@ -659,13 +643,7 @@ export default function Home() {
   if (showHistory) {
     return (
       <Layout>
-        <Box
-          w="full"
-          h="100%"
-          bg="gray.100"
-          position="relative"
-        >
-          <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
+          <Flex w="full" h="full" gap={6} p={6}>
             <Sidebar
               onNewChat={handleNewSession}
               onLogin={handleOpenLogin}
@@ -676,24 +654,15 @@ export default function Home() {
               userEmail={session?.user?.email}
               userNickname={session?.user?.name || null}
             />
-            <Box
-              flex={1}
-              h="full"
-              bg="white"
-              borderRadius="xl"
-              border="1px solid"
-              borderColor="gray.200"
-              overflow="hidden"
-              boxShadow="lg"
-              my={0}
-            >
+            <Card variant="floating" flex={1} h="full" overflow="hidden">
+              <CardBody p={0} h="full" display="flex" flexDirection="column">
               <ChatHistoryList
                 onSelectSession={handleSelectSession}
                 onBack={() => setShowHistory(false)}
               />
-            </Box>
+              </CardBody>
+            </Card>
           </Flex>
-        </Box>
       </Layout>
     );
   }
@@ -702,13 +671,7 @@ export default function Home() {
   if (showTrash) {
     return (
       <Layout>
-        <Box
-          w="full"
-          h="100%"
-          bg="gray.100"
-          position="relative"
-        >
-          <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
+          <Flex w="full" h="full" gap={6} p={6}>
             <Sidebar
               onNewChat={handleNewSession}
               onLogin={handleOpenLogin}
@@ -719,79 +682,23 @@ export default function Home() {
               userEmail={session?.user?.email}
               userNickname={session?.user?.name || null}
             />
-            <Box
-              flex={1}
-              h="full"
-              bg="white"
-              borderRadius="xl"
-              border="1px solid"
-              borderColor="gray.200"
-              overflow="hidden"
-              boxShadow="lg"
-              my={0}
-            >
+            <Card variant="floating" flex={1} h="full" overflow="hidden">
+              <CardBody p={0} h="full" display="flex" flexDirection="column">
               <TrashBinList onBack={() => setShowTrash(false)} />
-            </Box>
+              </CardBody>
+            </Card>
           </Flex>
-        </Box>
       </Layout>
     );
   }
 
-  // 로그인 채팅 모드
-  if (showLoginChat) {
-    return (
-      <Layout>
-        <Box
-          w="full"
-          h="100%"
-          bg="gray.100"
-          position="relative"
-        >
-          <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
-            <Sidebar
-              onNewChat={handleNewSession}
-              onLogin={handleOpenLogin}
-              onViewHistory={handleOpenHistory}
-              onViewTrash={handleOpenTrash}
-              onEditNickname={() => setShowNicknameSetup(true)}
-              isAuthenticated={status === 'authenticated'}
-              userEmail={session?.user?.email}
-              userNickname={session?.user?.name || null}
-            />
-            <Box
-              flex={1}
-              h="full"
-              bg="white"
-              borderRadius="xl"
-              border="1px solid"
-              borderColor="gray.200"
-              overflow="hidden"
-              boxShadow="lg"
-              my={0}
-            >
-              <LoginChat
-                onComplete={handleLoginComplete}
-                onCancel={() => setShowLoginChat(false)}
-              />
-            </Box>
-          </Flex>
-        </Box>
-      </Layout>
-    );
-  }
+
 
   // 문서 프리뷰 모드
   if (documentPreview) {
     return (
       <Layout>
-        <Box
-          w="full"
-          h="100vh"
-          bg="gray.100"
-          position="relative"
-        >
-          <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
+          <Flex w="full" h="full" gap={6} p={6}>
             <Sidebar
               onNewChat={handleNewSession}
               onLogin={handleOpenLogin}
@@ -802,19 +709,8 @@ export default function Home() {
               userEmail={session?.user?.email}
               userNickname={session?.user?.name || null}
             />
-            <VStack
-              align="stretch"
-              spacing={0}
-              flex={1}
-              h="full"
-              bg="white"
-              borderRadius="xl"
-              border="1px solid"
-              borderColor="gray.200"
-              overflow="hidden"
-              boxShadow="lg"
-              my={0}
-            >
+            <Card variant="floating" flex={1} h="full" overflow="hidden">
+              <CardBody p={0} h="full" display="flex" flexDirection="column">
               <Box
                 as="header"
                 py={5}
@@ -838,9 +734,9 @@ export default function Home() {
                   onDownload={() => {}}
                 />
               </Box>
-            </VStack>
+              </CardBody>
+            </Card>
           </Flex>
-        </Box>
       </Layout>
     );
   }
@@ -849,13 +745,7 @@ export default function Home() {
   if (showProjectNameSuggestions) {
     return (
       <Layout>
-        <Box
-          w="full"
-          h="100vh"
-          bg="gray.100"
-          position="relative"
-        >
-          <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
+          <Flex w="full" h="full" gap={6} p={6}>
             <Sidebar
               onNewChat={handleNewSession}
               onLogin={handleOpenLogin}
@@ -866,19 +756,8 @@ export default function Home() {
               userEmail={session?.user?.email}
               userNickname={session?.user?.name || null}
             />
-            <VStack
-              align="stretch"
-              spacing={0}
-              flex={1}
-              h="full"
-              bg="white"
-              borderRadius="xl"
-              border="1px solid"
-              borderColor="gray.200"
-              overflow="hidden"
-              boxShadow="lg"
-              my={0}
-            >
+            <Card variant="floating" flex={1} h="full" overflow="hidden">
+              <CardBody p={0} h="full" display="flex" flexDirection="column">
               <Box
                 as="header"
                 py={5}
@@ -903,9 +782,9 @@ export default function Home() {
                   onCustomInput={handleProjectNameSelect}
                 />
               </Box>
-            </VStack>
+              </CardBody>
+            </Card>
           </Flex>
-        </Box>
       </Layout>
     );
   }
@@ -920,15 +799,13 @@ export default function Home() {
         error={errorModal.error}
         title="오류 발생"
       />
+      <LoginModal
+        isOpen={showLoginChat}
+        onClose={() => setShowLoginChat(false)}
+        onComplete={handleLoginComplete}
+      />
       <Layout>
-        <Box
-        w="full"
-        h="100%"
-        bg="gray.100"
-        position="relative"
-        suppressHydrationWarning
-      >
-        <Flex w="full" h="full" gap={4} px={4} pt={2} pb={2}>
+        <Flex w="full" h="full" gap={6} p={6} suppressHydrationWarning>
           <Sidebar
             onNewChat={handleNewSession}
             onLogin={handleOpenLogin}
@@ -938,18 +815,8 @@ export default function Home() {
             userEmail={session?.user?.email}
             userNickname={session?.user?.name || null}
           />
-          <Flex
-            direction="column"
-            h="full"
-            flex={1}
-            bg="white"
-            borderRadius="xl"
-            border="1px solid"
-            borderColor="gray.200"
-            overflow="hidden"
-            boxShadow="lg"
-            my={0}
-          >
+          <Card variant="floating" flex={1} h="full" overflow="hidden">
+            <CardBody p={0} h="full" display="flex" flexDirection="column">
           {/* 헤더 */}
           <Box
             as="header"
@@ -981,9 +848,9 @@ export default function Home() {
             placeholder={isComplete ? '문서 생성을 시작하려면 Enter를 누르세요' : '답변을 입력하세요...'}
             isComplete={isComplete}
           />
+            </CardBody>
+          </Card>
         </Flex>
-        </Flex>
-      </Box>
     </Layout>
     </>
   );

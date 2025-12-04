@@ -5,16 +5,17 @@
 
 'use client';
 
-import {
-  Box,
-  HStack,
-  Textarea,
-  IconButton,
-  VStack,
-  Text,
-} from '@chakra-ui/react';
 import { ArrowForwardIcon } from '@chakra-ui/icons';
-import { useState, memo, KeyboardEvent } from 'react';
+import {
+    Box,
+    HStack,
+    IconButton,
+    Text,
+    Textarea,
+    VStack,
+    useColorModeValue,
+} from '@chakra-ui/react';
+import { KeyboardEvent, memo, useState } from 'react';
 
 interface ChatInputProps {
   onSubmit: (message: string) => void;
@@ -30,6 +31,13 @@ const ChatInput = memo(function ChatInput({
   isComplete = false,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
+  
+  // Colors
+  const borderColor = useColorModeValue('gray.200', 'whiteAlpha.200');
+  const bg = useColorModeValue('white', 'gray.800'); // Input area background
+  const textareaBg = useColorModeValue('gray.50', 'whiteAlpha.100');
+  const textareaBorder = useColorModeValue('gray.200', 'whiteAlpha.200');
+  const hintColor = useColorModeValue('gray.400', 'gray.500');
 
   const handleSubmit = () => {
     if (message.trim() && !isLoading) {
@@ -55,36 +63,45 @@ const ChatInput = memo(function ChatInput({
   return (
     <Box
       borderTop="1px solid"
-      borderColor="gray.200"
-      bg="white"
-      px={4}
-      pt={2}
-      pb={2}
+      borderColor={borderColor}
+      bg={bg}
+      px={6}
+      pt={4}
+      pb={6}
     >
-      <VStack align="stretch" spacing={2}>
+      <VStack align="stretch" spacing={3}>
         {isComplete && (
           <Text fontSize="xs" color="gray.500" textAlign="center">
             모든 질문이 완료되었습니다. 문서 생성을 시작할 수 있습니다.
           </Text>
         )}
         
-        <HStack spacing={2} align="flex-end">
+        <HStack spacing={3} align="flex-end">
           <Textarea
             value={message}
             onChange={handleTextareaChange}
             onKeyPress={handleKeyPress}
             placeholder={placeholder}
             resize="none"
-            minH="60px"
+            minH="50px"
             maxH="120px"
-            borderColor="gray.300"
+            bg={textareaBg}
+            border="1px solid"
+            borderColor={textareaBorder}
+            borderRadius="xl"
             _focus={{
               borderColor: 'brand.500',
+              bg: useColorModeValue('white', 'whiteAlpha.200'),
               boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)',
             }}
-            fontSize="sm"
+            _hover={{
+              borderColor: 'brand.400',
+            }}
+            fontSize="md"
             rows={1}
             overflowY="auto"
+            py={3}
+            px={4}
           />
           <IconButton
             aria-label="전송"
@@ -93,13 +110,20 @@ const ChatInput = memo(function ChatInput({
             onClick={handleSubmit}
             isLoading={isLoading}
             isDisabled={!message.trim() || isLoading}
-            size="md"
+            size="lg"
             borderRadius="full"
             flexShrink={0}
+            h="50px"
+            w="50px"
+            _hover={{
+              transform: 'translateY(-1px)',
+              boxShadow: 'md',
+            }}
+            transition="all 0.2s"
           />
         </HStack>
         
-        <Text fontSize="xs" color="gray.400" textAlign="right">
+        <Text fontSize="xs" color={hintColor} textAlign="center">
           Enter로 전송, Shift+Enter로 줄바꿈
         </Text>
       </VStack>

@@ -25,6 +25,7 @@
     "@auth/prisma-adapter": "^2.11.1",
     "@chakra-ui/icons": "^2.2.4",
     "@chakra-ui/react": "^2.10.9",
+    "@chakra-ui/theme-tools": "^2.2.6",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@prisma/client": "^6.19.0",
@@ -35,6 +36,7 @@
     "openai": "^4.67.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-icons": "^5.5.0",
     "react-markdown": "^9.0.3",
     "zod": "^3.25.76"
   },

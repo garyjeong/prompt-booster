@@ -1,5 +1,5 @@
 import { Box, Flex } from '@chakra-ui/react';
-import { memo, ReactNode } from 'react';
+import { ReactNode, memo } from 'react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,7 +10,7 @@ const Layout = memo(function Layout({ children }: LayoutProps) {
     <Flex 
       direction="column" 
       h="100vh"
-      bg="gray.50"
+      bg="transparent"
       p={0}
       suppressHydrationWarning
     >

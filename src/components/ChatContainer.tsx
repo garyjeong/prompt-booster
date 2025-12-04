@@ -5,15 +5,15 @@
 
 'use client';
 
+import type { QuestionAnswer } from '@/types/chat';
 import {
-  Box,
-  VStack,
-  Spinner,
-  Flex,
+    Box,
+    Flex,
+    Spinner,
+    VStack,
 } from '@chakra-ui/react';
 import { memo, useEffect, useRef } from 'react';
 import ChatMessage from './ChatMessage';
-import type { QuestionAnswer } from '@/types/chat';
 
 interface ChatContainerProps {
   questionAnswers: QuestionAnswer[];
@@ -50,22 +50,7 @@ const ChatContainer = memo(function ChatContainer({
       overflowY="auto"
       px={4}
       py={6}
-      bg="white"
-      css={{
-        '&::-webkit-scrollbar': {
-          width: '6px',
-        },
-        '&::-webkit-scrollbar-track': {
-          background: 'transparent',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          background: '#d4d4d4',
-          borderRadius: '3px',
-        },
-        '&::-webkit-scrollbar-thumb:hover': {
-          background: '#a3a3a3',
-        },
-      }}
+      bg="transparent"
     >
       <VStack align="stretch" spacing={3} w="full">
         {/* 현재 질문 (봇 메시지) - 히스토리 위에 표시 */}

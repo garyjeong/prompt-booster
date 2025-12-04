@@ -5,15 +5,16 @@
 
 'use client';
 
+import { ChatIcon } from '@chakra-ui/icons';
 import {
-  Box,
-  Text,
-  HStack,
-  Flex,
-  Icon,
+    Box,
+    Flex,
+    HStack,
+    Icon,
+    Text,
+    useColorModeValue,
 } from '@chakra-ui/react';
 import { memo } from 'react';
-import { ChatIcon } from '@chakra-ui/icons';
 
 interface ChatMessageProps {
   message: string;
@@ -26,6 +27,21 @@ const ChatMessage = memo(function ChatMessage({
   isBot = false,
   timestamp,
 }: ChatMessageProps) {
+  // Colors
+  const botBg = useColorModeValue('gray.50', 'whiteAlpha.100');
+  const botColor = useColorModeValue('gray.800', 'gray.100');
+  const botBorder = useColorModeValue('gray.200', 'whiteAlpha.200');
+  const botIconColor = useColorModeValue('brand.500', 'brand.400');
+  
+  const userBg = useColorModeValue('brand.500', 'brand.600');
+  const userColor = 'white';
+  const userShadow = useColorModeValue(
+    '0 2px 8px rgba(0, 112, 74, 0.15)', 
+    '0 2px 8px rgba(0, 0, 0, 0.4)'
+  );
+
+  const timestampColor = useColorModeValue('gray.400', 'gray.500');
+
   const formatTime = (date?: Date | string) => {
     if (!date) return '';
     
@@ -63,10 +79,10 @@ const ChatMessage = memo(function ChatMessage({
               as={ChatIcon}
               w={5}
               h={5}
-              color="brand.500"
+              color={botIconColor}
               flexShrink={0}
               mt={1}
-              opacity={0.7}
+              opacity={0.9}
             />
 
             {/* 메시지 버블 */}
@@ -74,16 +90,17 @@ const ChatMessage = memo(function ChatMessage({
               px={4}
               py={3}
               borderRadius="2xl"
-              bg="gray.50"
-              color="gray.900"
+              borderTopLeftRadius="sm"
+              bg={botBg}
+              color={botColor}
               position="relative"
               wordBreak="break-word"
-              boxShadow="0 1px 2px rgba(0, 0, 0, 0.05)"
+              boxShadow="sm"
               border="1px solid"
-              borderColor="gray.200"
+              borderColor={botBorder}
               transition="all 0.2s"
               _hover={{
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.08)',
+                boxShadow: 'md',
               }}
             >
               <Text
@@ -101,11 +118,13 @@ const ChatMessage = memo(function ChatMessage({
             {timestamp && (
               <Text
                 fontSize="11px"
-                color="gray.400"
+                color={timestampColor}
                 fontWeight="500"
                 letterSpacing="0.01em"
                 flexShrink={0}
                 pt={1}
+                alignSelf="flex-end"
+                pb={1}
               >
                 {formatTime(timestamp)}
               </Text>
@@ -120,11 +139,13 @@ const ChatMessage = memo(function ChatMessage({
             {timestamp && (
               <Text
                 fontSize="11px"
-                color="gray.400"
+                color={timestampColor}
                 fontWeight="500"
                 letterSpacing="0.01em"
                 flexShrink={0}
                 pt={1}
+                alignSelf="flex-end"
+                pb={1}
               >
                 {formatTime(timestamp)}
               </Text>
@@ -135,14 +156,16 @@ const ChatMessage = memo(function ChatMessage({
               px={4}
               py={3}
               borderRadius="2xl"
-              bg="brand.500"
-              color="white"
+              borderTopRightRadius="sm"
+              bg={userBg}
+              color={userColor}
               position="relative"
               wordBreak="break-word"
-              boxShadow="0 2px 8px rgba(98, 125, 152, 0.15)"
+              boxShadow={userShadow}
               transition="all 0.2s"
               _hover={{
-                boxShadow: '0 4px 12px rgba(98, 125, 152, 0.2)',
+                transform: 'translateY(-1px)',
+                boxShadow: 'lg',
               }}
             >
               <Text

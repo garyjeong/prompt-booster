@@ -1,287 +1,192 @@
 /**
  * Chakra UI 테마 설정
- * 고급스러운 색상 팔레트
+ * Starbucks Inspired Premium Green Palette
+ * Glassmorphism & Floating Card Design
  */
 
 "use client";
 
 import { extendTheme, type ThemeConfig } from "@chakra-ui/react";
+import { type StyleFunctionProps } from "@chakra-ui/theme-tools";
 
-// 다크모드 설정 (라이트 우선)
+// 다크모드 설정 (시스템 설정 따름)
 const config: ThemeConfig = {
-	initialColorMode: "light",
-	useSystemColorMode: false,
+	initialColorMode: "system",
+	useSystemColorMode: true,
 };
 
-// 고급스러운 컬러 팔레트
+// 스타벅스 영감 그린 팔레트 & 뉴트럴 톤
 const colors = {
 	brand: {
-		50: "#f0f4f8",   // 매우 연한 네이비
-		100: "#d9e2ec",  // 연한 네이비
-		200: "#bcccdc",  // 밝은 네이비
-		300: "#9fb3c8",  // 중간 밝기 네이비
-		400: "#829ab1",  // 네이비 그레이
-		500: "#627d98",  // 메인 브랜드 컬러 (고급스러운 네이비)
-		600: "#486581",  // 진한 네이비
-		700: "#334e68",  // 더 진한 네이비
-		800: "#243a52",  // 매우 진한 네이비
-		900: "#102a43",  // 최대 진한 네이비
+		50: "#e6f3f0",   // 매우 연한 민트
+		100: "#cce4dd",  // 연한 세이지
+		200: "#99c9bc",  // 부드러운 그린
+		300: "#66ad9b",  // 중간 그린
+		400: "#33927a",  // 밝은 스타벅스 그린
+		500: "#00704a",  // 스타벅스 메인 그린 (Primary)
+		600: "#006241",  // 딥 그린 (Hover)
+		700: "#1e3932",  // 다크 포레스트 (Dark Mode Bg)
+		800: "#132520",  // 매우 어두운 그린
+		900: "#0b1b15",  // 거의 블랙에 가까운 그린
+	},
+	accent: {
+		500: "#d4e9e2", // 스타벅스 라떼 아트 배경색 느낌
+		600: "#cba258", // 골드 액센트 (스타 리워드 느낌)
 	},
 	gray: {
-		50: "#fafafa",   // 크림 화이트
-		100: "#f5f5f5",  // 매우 연한 그레이
-		200: "#e8e8e8",  // 연한 그레이 (부드러운 테두리)
-		300: "#d4d4d4",  // 중간 연한 그레이 (구분선)
-		400: "#9e9e9e",  // 중간 그레이 (비활성 텍스트)
-		500: "#757575",  // 중간 그레이 (보조 텍스트)
-		600: "#616161",  // 진한 그레이 (본문 텍스트)
-		700: "#424242",  // 더 진한 그레이 (강조 텍스트)
-		800: "#2d2d2d",  // 매우 진한 그레이 (제목)
-		900: "#1a1a1a",  // 최대 진한 그레이 (최강조)
+		50: "#f9f9f9",
+		100: "#f2f0eb", // 웜 그레이 (종이 질감)
+		200: "#e5e5e5",
+		300: "#d4d4d4",
+		400: "#a3a3a3",
+		500: "#737373",
+		600: "#525252",
+		700: "#404040",
+		800: "#262626",
+		900: "#171717",
 	},
 };
 
-// 고급스러운 컴포넌트 스타일
+// 프리미엄 컴포넌트 스타일
 const components = {
 	Button: {
-		defaultProps: {
-			colorScheme: "brand",
-		},
 		baseStyle: {
-			fontWeight: "500",
-			borderRadius: "lg",
+			fontWeight: "600",
+			borderRadius: "full", // 둥근 알약 형태
+			transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
 		},
 		variants: {
-			solid: {
-				bg: "brand.500",
+			solid: (props: StyleFunctionProps) => ({
+				bg: props.colorMode === "dark" ? "brand.500" : "brand.600",
 				color: "white",
-				border: "none",
-				px: 6,
-				py: 2.5,
 				_hover: {
-					bg: "brand.600",
+					bg: props.colorMode === "dark" ? "brand.400" : "brand.700",
+					transform: "translateY(-1px)",
+					boxShadow: "lg",
 				},
 				_active: {
-					bg: "brand.700",
+					bg: props.colorMode === "dark" ? "brand.600" : "brand.800",
+					transform: "translateY(0)",
 				},
-			},
-			outline: {
-				borderColor: "gray.300",
-				borderWidth: "1px",
-				color: "gray.700",
-				bg: "transparent",
-				px: 5,
-				py: 2.5,
+			}),
+			outline: (props: StyleFunctionProps) => ({
+				borderColor: props.colorMode === "dark" ? "brand.400" : "brand.600",
+				color: props.colorMode === "dark" ? "brand.400" : "brand.600",
 				_hover: {
-					bg: "gray.50",
-					borderColor: "gray.400",
+					bg: props.colorMode === "dark" ? "whiteAlpha.100" : "brand.50",
 				},
-			},
-			ghost: {
-				color: "gray.600",
-				bg: "transparent",
-				px: 4,
-				py: 2,
+			}),
+			ghost: (props: StyleFunctionProps) => ({
+				color: props.colorMode === "dark" ? "gray.300" : "gray.600",
 				_hover: {
-					bg: "gray.100",
+					bg: props.colorMode === "dark" ? "whiteAlpha.200" : "blackAlpha.50",
+					color: props.colorMode === "dark" ? "white" : "brand.600",
 				},
-			},
+			}),
+			glass: (props: StyleFunctionProps) => ({
+				bg: props.colorMode === "dark" ? "whiteAlpha.100" : "whiteAlpha.500",
+				backdropFilter: "blur(10px)",
+				border: "1px solid",
+				borderColor: props.colorMode === "dark" ? "whiteAlpha.200" : "whiteAlpha.300",
+				color: props.colorMode === "dark" ? "white" : "gray.800",
+				_hover: {
+					bg: props.colorMode === "dark" ? "whiteAlpha.200" : "whiteAlpha.600",
+				},
+			}),
 		},
 	},
 	Card: {
-		baseStyle: {
+		baseStyle: (props: StyleFunctionProps) => ({
 			container: {
-				bg: "white",
-				borderRadius: "lg",
+				borderRadius: "2xl",
+				bg: props.colorMode === "dark" ? "gray.800" : "white",
+				boxShadow: props.colorMode === "dark" 
+					? "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.16)" 
+					: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
 				border: "1px solid",
-				borderColor: "gray.200",
-				shadow: "none",
-				transition: "all 0.2s ease",
+				borderColor: props.colorMode === "dark" ? "whiteAlpha.100" : "gray.100",
 			},
-		},
+		}),
 		variants: {
-			elevated: {
+			floating: (props: StyleFunctionProps) => ({
 				container: {
-					shadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+					bg: props.colorMode === "dark" ? "rgba(30, 57, 50, 0.7)" : "rgba(255, 255, 255, 0.8)",
+					backdropFilter: "blur(16px)",
+					border: "1px solid",
+					borderColor: props.colorMode === "dark" ? "whiteAlpha.100" : "whiteAlpha.400",
+					boxShadow: "xl",
 				},
-			},
-			flat: {
-				container: {
-					border: "none",
-					shadow: "none",
-					bg: "transparent",
-				},
-			},
-		},
-		defaultProps: {
-			variant: "elevated",
+			}),
 		},
 	},
 	Input: {
 		variants: {
-			outline: {
+			filled: (props: StyleFunctionProps) => ({
 				field: {
-					borderRadius: "lg",
+					bg: props.colorMode === "dark" ? "whiteAlpha.100" : "gray.50",
+					borderRadius: "xl",
 					border: "1px solid",
-					borderColor: "gray.300",
-					bg: "white",
+					borderColor: "transparent",
+					_hover: {
+						bg: props.colorMode === "dark" ? "whiteAlpha.200" : "gray.100",
+					},
 					_focus: {
+						bg: props.colorMode === "dark" ? "whiteAlpha.200" : "white",
 						borderColor: "brand.500",
 						boxShadow: "0 0 0 1px var(--chakra-colors-brand-500)",
 					},
-					_placeholder: {
-						color: "gray.400",
-					},
 				},
-			},
+			}),
 		},
-	},
-	Textarea: {
-		variants: {
-			outline: {
-				borderRadius: "lg",
-				border: "1px solid",
-				borderColor: "gray.300",
-				bg: "white",
-				resize: "none",
-				_focus: {
-					borderColor: "brand.500",
-					boxShadow: "0 0 0 1px var(--chakra-colors-brand-500)",
-				},
-				_placeholder: {
-					color: "gray.400",
-				},
-			},
+		defaultProps: {
+			variant: "filled",
 		},
 	},
 };
 
 // 폰트 설정
 const fonts = {
-	heading: `'Geist Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"`,
-	body: `'Geist Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"`,
-	mono: `'Geist Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace`,
+	heading: `'Geist Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`,
+	body: `'Geist Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`,
+	mono: `'Geist Mono', 'SF Mono', monospace`,
 };
 
-// 타이포그래피 스케일 확장
-const fontSizes = {
-	xs: "0.75rem",    // 12px
-	sm: "0.875rem",   // 14px
-	md: "1rem",       // 16px
-	lg: "1.125rem",   // 18px
-	xl: "1.25rem",    // 20px
-	"2xl": "1.5rem",  // 24px
-	"3xl": "1.875rem", // 30px
-	"4xl": "2.25rem",  // 36px
-	"5xl": "3rem",     // 48px
-	"6xl": "3.75rem",  // 60px
-};
-
-// 간격 시스템 정리
-const space = {
-	px: "1px",
-	0: "0",
-	0.5: "0.125rem",  // 2px
-	1: "0.25rem",     // 4px
-	1.5: "0.375rem",  // 6px
-	2: "0.5rem",      // 8px
-	2.5: "0.625rem",  // 10px
-	3: "0.75rem",     // 12px
-	3.5: "0.875rem",  // 14px
-	4: "1rem",        // 16px
-	5: "1.25rem",     // 20px
-	6: "1.5rem",      // 24px
-	7: "1.75rem",     // 28px
-	8: "2rem",        // 32px
-	9: "2.25rem",     // 36px
-	10: "2.5rem",     // 40px
-	12: "3rem",       // 48px
-	14: "3.5rem",     // 56px
-	16: "4rem",       // 64px
-	20: "5rem",       // 80px
-	24: "6rem",       // 96px
-	28: "7rem",       // 112px
-	32: "8rem",       // 128px
-	36: "9rem",       // 144px
-	40: "10rem",      // 160px
-	44: "11rem",      // 176px
-	48: "12rem",      // 192px
-	52: "13rem",      // 208px
-	56: "14rem",      // 224px
-	60: "15rem",      // 240px
-	64: "16rem",      // 256px
-	72: "18rem",      // 288px
-	80: "20rem",      // 320px
-	96: "24rem",       // 384px
-};
-
-// 고급스러운 전역 스타일
+// 전역 스타일
 const styles = {
-    global: {
-        body: {
-            bg: "#fafafa",
-            color: "gray.800",
-            lineHeight: "1.6",
-            fontFeatureSettings: '"cv02","cv03","cv04","cv11"',
-        },
-        "*::placeholder": {
-            color: "gray.400",
-        },
-        // 스크롤바 스타일링 (고급스러운)
-        "::-webkit-scrollbar": {
-            width: "6px",
-            height: "6px",
-        },
-        "::-webkit-scrollbar-track": {
-            bg: "transparent",
-        },
-        "::-webkit-scrollbar-thumb": {
-            bg: "gray.300",
-            borderRadius: "full",
-            _hover: {
-                bg: "gray.400",
-            },
-        },
-    },
+	global: (props: StyleFunctionProps) => ({
+		body: {
+			bg: props.colorMode === "dark" ? "brand.900" : "gray.100",
+			color: props.colorMode === "dark" ? "gray.100" : "gray.800",
+			// 배경 패턴 (옵션)
+			backgroundImage: props.colorMode === "dark" 
+				? "radial-gradient(circle at 50% 0%, #1e3932 0%, #0b1b15 70%)"
+				: "radial-gradient(circle at 50% 0%, #d4e9e2 0%, #f2f0eb 70%)",
+			backgroundAttachment: "fixed",
+		},
+		// 스크롤바 커스텀
+		"::-webkit-scrollbar": {
+			width: "8px",
+			height: "8px",
+		},
+		"::-webkit-scrollbar-track": {
+			bg: "transparent",
+		},
+		"::-webkit-scrollbar-thumb": {
+			bg: props.colorMode === "dark" ? "whiteAlpha.200" : "blackAlpha.200",
+			borderRadius: "full",
+			_hover: {
+				bg: props.colorMode === "dark" ? "whiteAlpha.300" : "blackAlpha.300",
+			},
+		},
+	}),
 };
 
-// 미니멀 트랜지션 설정
-const transition = {
-    property: {
-        common: "background-color, border-color, color, opacity",
-        colors: "background-color, border-color, color",
-    },
-    easing: {
-        "ease-in-out": "cubic-bezier(0.4, 0, 0.2, 1)",
-    },
-    duration: {
-        fast: "150ms",
-        normal: "200ms",
-        slow: "300ms",
-    },
-};
-
-// 반응형 브레이크포인트
-const breakpoints = {
-	base: "0em", // 0px
-	sm: "30em", // ~480px
-	md: "48em", // ~768px
-	lg: "62em", // ~992px
-	xl: "80em", // ~1280px
-	"2xl": "96em", // ~1536px
-};
-
-// 테마 확장
 const theme = extendTheme({
 	config,
 	colors,
 	components,
 	fonts,
-	fontSizes,
-	space,
 	styles,
-	breakpoints,
-	transition,
 });
 
 export default theme;

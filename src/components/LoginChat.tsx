@@ -4,17 +4,17 @@
 
 'use client';
 
+import type { QuestionAnswer } from '@/types/chat';
 import {
-  Box,
-  Text,
-  Flex,
-  Button,
-  VStack,
+    Box,
+    Button,
+    Flex,
+    Text,
+    VStack,
 } from '@chakra-ui/react';
 import { memo, useState } from 'react';
-import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
-import type { QuestionAnswer } from '@/types/chat';
+import ChatMessage from './ChatMessage';
 
 interface LoginChatProps {
   onComplete: () => void;
@@ -58,13 +58,9 @@ const LoginChat = memo(function LoginChat({
   return (
     <Flex
       direction="column"
-      h="100vh"
+      h="full"
       w="full"
-      bg="white"
-      border="1px solid"
-      borderColor="gray.200"
-      borderRadius="lg"
-      overflow="hidden"
+      bg="transparent"
     >
       {/* 헤더 */}
       <Box
@@ -73,7 +69,7 @@ const LoginChat = memo(function LoginChat({
         px={6}
         borderBottom="1px solid"
         borderColor="gray.200"
-        bg="white"
+        bg="transparent"
         flexShrink={0}
       >
         <Flex justify="space-between" align="center">
@@ -97,22 +93,7 @@ const LoginChat = memo(function LoginChat({
         overflowY="auto"
         px={4}
         py={6}
-        bg="white"
-        css={{
-          '&::-webkit-scrollbar': {
-            width: '6px',
-          },
-          '&::-webkit-scrollbar-track': {
-            background: 'transparent',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            background: '#d4d4d4',
-            borderRadius: '3px',
-          },
-          '&::-webkit-scrollbar-thumb:hover': {
-            background: '#a3a3a3',
-          },
-        }}
+        bg="transparent"
       >
         <VStack align="stretch" spacing={3} w="full">
           {/* 히스토리 메시지들 */}
